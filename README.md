@@ -74,6 +74,7 @@ The implementation code for DA Wand relies on a number of excellent public sourc
 - [DiffusionNet](https://github.com/nmwsharp/diffusion-net)
 - [Polyscope](https://github.com/nmwsharp/polyscope)
 - [PyVista](https://github.com/pyvista)
+- [Parameterization Benchmark](https://github.com/georgiashay/parameterization_benchmark)
 
 ## Citation
 ```
