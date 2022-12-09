@@ -1,42 +1,12 @@
 # Project specifics
+.DS_Store
 .idea/*
 *.pyc
 *.m~
 *.gif
 .vs
 *.ini
-screenshot*
 *.zip
-ExponentialMap
-*redwood-3dscan
-**metrics*
-**gco_python**
-**tridesic**
-
-# data files
-MeshCNN/checkpoints
-MeshCNN/datasets
-MeshCNN/runs
-MeshCNN/scratch/*_pwise_face.npy
-MeshCNN/scratch/cpu_scratch
-MeshCNN/scratch/from_cluster
-MeshCNN/scratch/
-MeshCNN/cylinder_test
-**/outputs
-**/scratch
-**/datasets
-**/final_weights.csv
-**/slurm
-**/results
-**/tests
-**/scratch
-**/runs
-**/cache
-**pools
-**cache**
-
-external
-Papers
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
