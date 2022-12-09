@@ -9,7 +9,6 @@ Public code release for "DA Wand: Distortion-Aware Selection using Neural Mesh P
 
 ## Getting Started
 ### Installation
-
 ```
 # With GPU 
 conda env create --file dawand.yml
@@ -19,6 +18,7 @@ conda activate dawand
 conda env create --file dawand_cpu.yml
 conda activate dawand
 ```
+To install pygco, go into the `gco_python` folder and run `make`, then run `python setup.py install`. If you experience any issues please refer to the [gco_python repo](https://github.com/amueller/gco_python).
 
 ### System Requirements
 - Python 3.7

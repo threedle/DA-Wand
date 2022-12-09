@@ -59,9 +59,9 @@ class DAWand:
             self.savetraindata = opt.savetraindata
             if opt.continue_train == True: 
                 # NOTE: Continue train != load pretrain (save dir vs network load path)
-                self.load_network(opt.which_epoch, self.save_dir, ff_epoch=opt.ff_epoch)
+                self.load_network(opt.which_epoch, self.save_dir)
             elif opt.load_pretrain == True: 
-                self.load_network(opt.which_epoch, self.network_load_dir, ff_epoch=opt.ff_epoch)
+                self.load_network(opt.which_epoch, self.network_load_dir)
                 
             self.net.train()
             # Set gradient clipping 
@@ -101,9 +101,9 @@ class DAWand:
             print_network(self.net)
         else:
             try:
-                self.load_network(opt.which_epoch, self.save_dir, ff_epoch=opt.ff_epoch)
+                self.load_network(opt.which_epoch, self.save_dir)
             except Exception as e: 
-                self.load_network(opt.which_epoch, self.network_load_dir, ff_epoch=opt.ff_epoch)
+                self.load_network(opt.which_epoch, self.network_load_dir)
             self.net.eval()
 
     def set_input(self, data):
@@ -259,13 +259,8 @@ class DAWand:
         distortion_mode = False 
         if epoch >= self.opt.delayed_distortion_epochs and self.opt.solo_distortion==True:
             distortion_mode = True 
-        
-        export_pool = False 
-        # Export pool only every some view epochs 
-        if self.opt.export_view_freq > 0 and epoch % self.opt.export_view_freq == 0 and epoch != 0:
-            export_pool = True
-        
-        out, deep_features = self.forward(export_pool=export_pool)
+                
+        out, deep_features = self.forward()
         
         self.total_loss = 0.0
         # M x F x 1 OR M x E x 1
@@ -800,7 +795,7 @@ class DAWand:
                 print(e)
                 print(f"Optimizer loading failed. Starting training from initial optimizer settings...")
             
-    def load_network(self, which_epoch, loaddir, ff_epoch=None):
+    def load_network(self, which_epoch, loaddir):
         """load model from disk"""
         save_filename = '%s_net.pth' % which_epoch
         load_path = join(loaddir, save_filename)

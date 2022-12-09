@@ -1321,7 +1321,7 @@ class MeshEncoder(nn.Module):
             fe, before_pool, unpools, unpool_weights = conv((fe, meshes), time)
             if self.export_pool == True or export_pool==True:
                 for mesh in meshes:
-                    mesh.export_obj(edge_count = len(list(mesh.topology.edges.keys())))
+                    mesh.export_obj()
             encoder_outs.append(before_pool)
             if unpools is not None:
                 conv_unpools.append(unpools)

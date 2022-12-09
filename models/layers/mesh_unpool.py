@@ -7,8 +7,6 @@ class MeshUnpool(nn.Module):
         super(MeshUnpool, self).__init__()
         # NOTE: Padding to this target is problematic when an input mesh has irreducible triangulation w/ # edges > unroll_target
         self.unroll_target = unroll_target
-        # TODO: Default is currently just saving weighted contribution during pooling
-        #     - implement LEARNABLE unpooling!
         self.type = type
 
     def __call__(self, features, meshes, unpools, weights=None, target_n = None):
@@ -48,25 +46,6 @@ class MeshUnpool(nn.Module):
             # Need to loop through each unpool iteratively, b/c coarse edge features also change with sequence
             for unpool in mesh_unpools:
                 unpool.apply()
-                # Debug: visualize unpool 
-                # import polyscope as ps 
-                # import numpy as np 
-                # ps.init() 
-                # vertices, faces, edges = mesh.export_soup()
-                # ps_mesh = ps.register_surface_mesh("mesh", vertices, faces, edge_width=1)
-                # # Draw edges as curve networks 
-                # left_vertices = mesh.vertices[[v.index for v in mesh.topology.edges[unpool.e_left_id].two_vertices()]]
-                # right_vertices = mesh.vertices[[v.index for v in mesh.topology.edges[unpool.e_right_id].two_vertices()]]
-                # nodes = np.concatenate([left_vertices, right_vertices])
-                # ps_old_curves = ps.register_curve_network("old edges", nodes, np.array([[0,1],[2,3]]), color=np.array([1,0,0]))
-                
-                # e_vertices = mesh.vertices[[v.index for v in mesh.topology.edges[unpool.new_e_bundle[0]].two_vertices()]]
-                # new_left_vertices = mesh.vertices[[v.index for v in mesh.topology.edges[unpool.new_e_left_bundle[0]].two_vertices()]]
-                # new_right_vertices = mesh.vertices[[v.index for v in mesh.topology.edges[unpool.new_e_right_bundle[0]].two_vertices()]]
-                # nodes = np.concatenate([e_vertices, new_left_vertices, new_right_vertices])
-                # ps_old_curves = ps.register_curve_network("new edges", nodes, np.array([[0,1],[2,3],[4,5]]), color=np.array([0,1,0]))
-    
-                # ps.show() 
                 
             edge_keys = torch.tensor(list(sorted(mesh.topology.edges.keys()))).long().to(mesh_features.device)
             edges_count = len(edge_keys)
@@ -87,7 +66,6 @@ class MeshUnpool(nn.Module):
 
                 # MeshCNN original upsample: copy adjacent edges and rebuilt center edge is mean
                 if weights is None:
-                    # TODO: Forward pooling step is NOT iterative -- we should unpool in the same way 
                     # NOTE: we have to update edge features ITERATIVELY (since new edge feature may be dependent on a previously collapsed edge)
                     assert torch.all(new_mesh_features[:, new_e_left_index] == 0), f"Error: overwriting already visited edge"
                     assert torch.all(new_mesh_features[:, new_e_right_index] == 0), f"Error: overwriting already visited edge"
@@ -111,44 +89,6 @@ class MeshUnpool(nn.Module):
                     new_mesh_features[:, new_e_right_index] = right_features[:, 1]
                     new_mesh_features[:, new_e_index] = (left_features[:,2] + right_features[:,2])/2
             new_features.append(new_mesh_features)
-            
-            # Visualize new and old features 
-            # import sys 
-            # sys.path.append("../../")
-            # from util.util import polyscope_edge_perm
-            # eperm = polyscope_edge_perm(mesh)
-            # # Map ordered features to original edge order in mesh 
-            # new_indices = topo_to_inds[list(mesh.topology.edges.keys())]
-            # import polyscope as ps 
-            # import numpy as np
-            # ps.init() 
-            # vs, fs, _ = mesh.export_soup() 
-            # ps_mesh = ps.register_surface_mesh("mesh", vs, fs, edge_width = 1)
-            # ps_mesh.set_edge_permutation(eperm)
-            # # New edge features 
-            # print(new_mesh_features.shape)
-            # topo_x = new_mesh_features[:,new_indices]  
-            # print(topo_x.shape)
-            # print(new_indices[:10])
-            # ps_mesh.add_scalar_quantity("new_x0", topo_x[0].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("new_x1", topo_x[1].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("new_x2", topo_x[2].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("new_x3", topo_x[3].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("new_x4", topo_x[4].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            
-            # # Old edge features 
-            # print(old_keys_unsorted[:10])
-            # topo_to_inds = torch.zeros(torch.max(old_keys) + 1).long().to(mesh_features.device)
-            # topo_to_inds[old_keys] = torch.arange(len(old_keys)).to(mesh_features.device)
-            # old_mesh_features = mesh_features[:,topo_to_inds[old_keys_unsorted]]
-            # old_mesh_features = torch.nn.functional.pad(old_mesh_features, (0, topo_x.shape[1] - old_mesh_features.shape[1], 0, 0), value=-1)
-            # ps_mesh.add_scalar_quantity("x0", old_mesh_features[0].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("x1", old_mesh_features[1].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("x2", old_mesh_features[2].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("x3", old_mesh_features[3].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps_mesh.add_scalar_quantity("x4", old_mesh_features[4].detach().numpy(), defined_on='edges', enabled=True, vminmax=(-1,1)) 
-            # ps.show()
-            # raise 
             
         # Pad each set of new mesh features to either input target or max edges
         new_target = target_n

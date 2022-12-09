@@ -31,14 +31,7 @@ class MeshPool(nn.Module):
         pool_threads = []
         self.__fe = fe
         self.__meshes = meshes
-        
-        # Debugging: show old and new pooled meshes
-        # import polyscope as ps 
-        # ps.init() 
-        # for i in range(len(meshes)): 
-        #     vs, fs, _ = meshes[i].export_soup() 
-        #     ps_mesh = ps.register_surface_mesh(f"mesh{i}", vs, fs, edge_width=1)
-
+    
         # iterate over batch
         for mesh_index in range(len(meshes)):
             if self.__multi_thread:
@@ -51,12 +44,6 @@ class MeshPool(nn.Module):
                 pool_threads[mesh_index].join()
         # Pad updated features to new max-edge mesh
         new_target = max([fe.shape[1] for fe in self.__updated_fe])
-        
-        # Debug
-        # for i in range(len(meshes)): 
-        #     vs, fs, _ = meshes[i].export_soup() 
-        #     ps_mesh = ps.register_surface_mesh(f"mesh{i}_pool", vs, fs, edge_width=1)
-        # ps.show()
         
         for i in range(len(self.__updated_fe)):
             fe = self.__updated_fe[i]
@@ -92,12 +79,6 @@ class MeshPool(nn.Module):
             similarities = torch.mean(torch.sum((fe.unsqueeze(2) - fe[:,edge_neighbor_inds])**2, dim=0), dim=1) 
             assert len(similarities) == fe.shape[1], f"MeshPool similarity: expected edge count {fe.shape[1]}, got {len(similarities)} edge comparisons"
             sorted_edge_ids = torch.argsort(similarities)
-            # Debugging
-            # print(fe[:,sorted_edge_ids[0]])
-            # print(similarities[sorted_edge_ids[0]])
-            # print(edge_neighbor_inds[sorted_edge_ids[0]])
-            # print(torch.sum((fe[:,sorted_edge_ids[0]].unsqueeze(1) - fe[:,edge_neighbor_inds[sorted_edge_ids[0]]])**2, dim=0))
-            # raise 
         elif self.__order == "neighborsim":
             # Collapse edges for which the corresponding neighbors are most similar 
             edge_neighbors = torch.stack([
@@ -109,12 +90,6 @@ class MeshPool(nn.Module):
             similarities = torch.sum(torch.sum((fe_neighbor[:,:,:,0] - fe_neighbor[:,:,:,1])**2, dim=-1), dim=0)
             assert len(similarities) == fe.shape[1], f"MeshPool similarity: expected edge count {fe.shape[1]}, got {len(similarities)} edge comparisons"
             sorted_edge_ids = torch.argsort(similarities)
-            # Debugging
-            # print(fe[:,sorted_edge_ids[0]])
-            # print(fe_neighbor[:,sorted_edge_ids[0],:, :])
-            # print(similarities[sorted_edge_ids[0]])
-            # print(edge_neighbor_inds[sorted_edge_ids[0]])
-            # raise 
         elif self.__order == "anchordot":
             # Rank based on average dot product between anchor edge features and other edge features 
             # First normalize all features 
@@ -199,30 +174,10 @@ class MeshPool(nn.Module):
             # If we run through all valid keys, then collapsing is over
             if success == False:
                 break
-            
-        # Debugging: values collapsed correctly
-        unpool = self.__unpools[mesh_index][0]
-        left_edge_index = topo_to_inds[unpool.e_left_id]
-        right_edge_index = topo_to_inds[unpool.e_right_id]
-        deleted_e_index = topo_to_inds[unpool.new_e_bundle[0]]
-        deleted_e_left_index = topo_to_inds[unpool.new_e_left_bundle[0]]
-        deleted_e_right_index = topo_to_inds[unpool.new_e_right_bundle[0]]
-        print(fe[:,left_edge_index])
-        print(fe[:,right_edge_index])
-        print(fe[:,deleted_e_index])
-        print(fe[:,deleted_e_left_index])
-        print(fe[:,deleted_e_right_index])
-        print(pool_mat[[left_edge_index, right_edge_index, deleted_e_index, deleted_e_left_index, deleted_e_right_index], left_edge_index])
-        print(fe.shape) 
-        print(pool_mat.shape)
         
         fe = torch.matmul(fe, pool_mat)
         fe /= torch.sum(pool_mat, dim=0, keepdim=True) # Mean 
         self.__updated_fe[mesh_index] = fe[:, topo_to_inds[list(sorted(mesh.topology.edges.keys()))]]
-        # print(f"Done. # edges: {len(keepcols)}")
-        print(fe[:, left_edge_index])
-        print(fe[:, right_edge_index])
-        raise 
     
         # Recompute edge neighborhood matrix 
         computeEdgeNeighborMatrix(mesh)

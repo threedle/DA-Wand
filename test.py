@@ -13,17 +13,7 @@ import torch
 def run_test(epoch, dataset, opt):
     from util.losses import compute_pr_auc, mAP, f1
     print('Running Test')
-    # opt = TestOptions().parse()
-    # opt.phase = "test"
-    # opt.serial_batches = True  # no shuffle
-    # opt.shuffle_topo = False 
-    # opt.load_pretrain = False 
-    # opt.which_epoch = epoch
-    # opt.ff_epoch = epoch 
-    # opt.network_load_path = None # Use save dir to prevent finetuning errors 
-    # # NOTE: need to toggle below line if we change something about the dataset 
-    # opt.overwritecache = False # Test cache is PRECOMPUTED    
-    # dataset = DataLoader(opt)
+    
     model = create_model(opt)
     writer = Writer(opt)
     # test
@@ -144,7 +134,7 @@ def run_test(epoch, dataset, opt):
                 metricnames.append(name)
         writer.print_stats(epoch, printstats, distortnames, distortion=True)
         
-    return total_loss/len(dataset), metricnames, avgstats, metricsdict, lossesdict, distortdict
+    return total_loss/len(dataset), metricnames, avgstats
 
 if __name__ == '__main__':
     import numpy as np
