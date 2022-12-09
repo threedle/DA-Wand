@@ -69,6 +69,7 @@ To use a different DAWand model, simply change the inputs to `modeldir` and `mod
 ## Acknowledgements
 The implementation code for DA Wand relies on a number of excellent public source projects for geometry processing, analysis, and visualization. These projects are acknowledged below:
 - [libigl](https://github.com/libigl/libigl-python-bindings/)
+- [MeshCNN](https://github.com/ranahanocka/MeshCNN/)
 - [PyMesh](https://github.com/PyMesh/PyMesh)
 - [DiffusionNet](https://github.com/nmwsharp/diffusion-net)
 - [Polyscope](https://github.com/nmwsharp/polyscope)
