@@ -1,5 +1,5 @@
 # DA Wand [[Project Page](https://threedle.github.io/DA-Wand/)]
-[![arXiv](https://img.shields.io/badge/arXiv-DAWand-b31b1b.svg)](https://arxiv.org/abs/2112.03221)
+[![arXiv](https://img.shields.io/badge/arXiv-DAWand-b31b1b.svg)](https://threedle.github.io/DA-Wand/)
 ![Pytorch](https://img.shields.io/badge/PyTorch->=1.11.0-Red?logo=pytorch)
 ![CUDA](https://img.shields.io/badge/CUDA->=11.3.1-Red?logo=CUDA)
 
