@@ -56,7 +56,7 @@ The differentiable parameterization layer enables training DA Wand over any arbi
 To train with mixed data, simply pass the flags `--supervised --mixedtraining` into the `train.py` call. 
 
 ## Interactive Demo 
-./media/demo.mp4
+https://user-images.githubusercontent.com/29670153/206595632-de8bd95c-d8f2-4fc4-9b62-c7a2e7663c16.mp4
 
 The interactive demo was created using [Polyscope](https://github.com/nmwsharp/polyscope). To run the demo, run the following command 
 ```bash
