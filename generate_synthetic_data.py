@@ -1,15 +1,9 @@
-# Generate developable dataset by running CSG with deformed polyhedrons  
-from multiprocessing.sharedctypes import Value
-from turtle import clear
+# DAWand: Generate developable dataset by running CSG with deformed polyhedrons  
 from models.layers.meshing import Mesh
 from models.layers.meshing.io import PolygonSoup
-from models.layers.meshing.analysis import computeVertexAngle
 import numpy as np
 import os 
-import torch 
-import random 
 from pathlib import Path
-import polyscope as ps
 import sys
 from util.util import run_slim, get_ss
 import re 
@@ -17,10 +11,6 @@ from util.util import getRotMat, fix_orientation
 import dill as pickle 
 from util.util import clear_directory
 sys.setrecursionlimit(10000)
-
-# Pipeline: union up to 5 deformed shapes (normalize => rotation + translation augs => wildmeshing) => fix orientations => 
-#               save as objs => map labels to new faces using correspondence (check vertices for each face) + 
-#                                 sample anchors from each label set in source folder
 
 # Given face topology, return list of contiguous patches indexing into input face array 
 def contiguous_patches(faces):
@@ -112,59 +102,25 @@ def generate_union(meshes):
     csg_mesh = Mesh(vertices, new_faces)
     vs, fs, _ = csg_mesh.export_soup()
     assert len(fs) == len(source_inds) == len(source_faces), f"Error: new mesh faces/source mappings of unequal length. Faces: {len(fs)}. Inds: {len(source_inds)}. Face maps: {len(source_faces)}. New faces: {len(faces)}."       
-    # Debugging: visualize mappings 
-    # from models.layers.meshing.analysis import computeFaceNormals
-    # computeFaceNormals(csg_mesh)
-    # # Make sure face normals fit within mesh 
-    # csg_mesh.facenormals *= 0.1
-    # import polyscope as ps
-    # ps.init()
-    # ps_mesh = ps.register_surface_mesh("csgmesh", csg_mesh.vertices, new_faces, edge_width=1)
-    # ps_mesh.add_vector_quantity("normals", csg_mesh.facenormals, defined_on='faces', enabled=True, vectortype='ambient')
-    # ps_mesh.add_scalar_quantity("sources", source_inds, defined_on='faces', enabled=True)
-    # # Show mappings to original meshes (split concatenated faces)
-    # face_min = 0 
-    # face_max = 0 
-    # for i in range(len(meshes)):
-    #     mesh = meshes[i] 
-    #     vs, fs, _ = mesh.export_soup() 
-    #     face_max += len(fs)
-    #     source_mesh_inds = (source_faces < face_max) & (source_faces >= face_min)
-    #     face_maps = source_faces[source_mesh_inds]
-    #     face_maps -= np.min(face_maps)
-    #     source_f_color = np.zeros(len(source_faces)) * -1 
-    #     source_f_color[source_mesh_inds] = face_maps 
-    #     ps_mesh.add_scalar_quantity(f"source faces {i}", source_f_color, defined_on='faces', enabled=True)
-    #     og_psmesh = ps.register_surface_mesh(f"ogmesh{i}", vs, fs, edge_width=1)
-    #     og_psmesh.add_scalar_quantity("enumfaces", np.arange(len(fs)), defined_on='faces', enabled=True)
-    #     face_min += len(fs)
-    # # Visualize unoriented mesh to double check pymesh 
-    # pycsg_mesh = Mesh(vertices, faces)
-    # pycsg_mesh.normalize()
-    # computeFaceNormals(pycsg_mesh)
-    # ps_mesh = ps.register_surface_mesh("pycsgmesh", pycsg_mesh.vertices, faces, edge_width=1)
-    # ps_mesh.add_vector_quantity("normals", pycsg_mesh.facenormals * 0.1, defined_on='faces', enabled=True, vectortype='ambient')
-    # ps_mesh.add_scalar_quantity("sources", source_inds, defined_on='faces', enabled=True)
-    # ps.show() 
-    # raise 
+     
     csg_mesh.normalize() 
     return csg_mesh, source_inds, source_faces
 
 
 if __name__ == "__main__":
     import argparse 
-    
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--defdir', default="./datasets/meshgen/polyhedrons_def_highres", help='path to deformed simple shapes')
-    parser.add_argument('--sourcedir', default="./datasets/meshgen/source_highres", help='path to source directory')
-    parser.add_argument('--savedir', default="./datasets/meshgen/developable_highres", help='path to export')
+    parser.add_argument('--defdir', default="./datasets/deformed_primitives", help='path to deformed primitives')
+    parser.add_argument('--sourcedir', default="./datasets/primitives", help='path to source directory with ground truth label data')
+    parser.add_argument('--savedir', default="./datasets/synthetic_dataset", help='path to export')
     parser.add_argument('--n_sample', type=int, default=30)
+    parser.add_argument('--min_patch_size', type=int, default=10, help='minimum number of triangles for a valid ground truth patch')
     parser.add_argument('--max_union', type=int, default=5)
     parser.add_argument('--ratio', type=float, default=0.05, help='percent of faces to sample as anchors')
     parser.add_argument('--max_anchors', type=int, default=np.inf, help="max # anchors allowed per patch")
     parser.add_argument('--train_split', type=float, default=0.8)
     parser.add_argument('--max_distort', type=float, default=0.05)
-    parser.add_argument('--additional_primitives', nargs="+", default=[])
+    parser.add_argument('--additional_primitives', nargs="+", default=[], help='manual list of additional deformed primitives to add to dataset without CSG')
     parser.add_argument('--overwrite', action="store_true")
 
     args = parser.parse_args()
@@ -242,6 +198,7 @@ if __name__ == "__main__":
         
         # Generate union surface mesh 
         csgmesh, source_inds, source_faces = generate_union(meshes)
+        
         # Generate mappings to original meshes (split concatenated faces)
         face_min = 0 
         face_max = 0
@@ -262,19 +219,6 @@ if __name__ == "__main__":
                 continue 
             assert np.max(face_maps) < len(fs) and np.min(face_maps) >= 0, f"Error: Source face {np.max(face_maps)} larger than # mesh faces {len(fs)}" 
             
-            # Debugging: might be something wrong with the CSG mapping 
-            # import polyscope as ps 
-            # ps.init() 
-            # ps_og_mesh = ps.register_surface_mesh("og mesh", vs, fs, edge_width=1)
-            # og_faces = np.zeros(len(fs))
-            # og_faces[face_maps] = 1 
-            # ps_og_mesh.add_scalar_quantity("mapped faces", og_faces, defined_on="faces", enabled=True)
-            # ps_csgmesh = ps.register_surface_mesh("csg mesh", vertices, faces, edge_width=1)
-            # csg_faces = np.zeros(len(faces))
-            # csg_faces[source_mesh_inds] = 1
-            # ps_csgmesh.add_scalar_quantity(f"mapped faces", csg_faces, defined_on="faces", enabled=True)
-            # ps.show()
-            
             labels = meshlabels[int(meshi)]
             for labeli in range(len(labels)): 
                 labelset = labels[labeli]
@@ -282,7 +226,8 @@ if __name__ == "__main__":
                 tmplabels = np.zeros(len(faces), dtype=int)
                 tmplabels[source_mesh_inds] = labelset[face_maps]
 
-                if np.sum(tmplabels) < 10: 
+                # Prune small segmentations 
+                if np.sum(tmplabels) < args.min_patch_size: 
                     continue 
                 
                 patches = contiguous_patches(faces[np.where(tmplabels == 1)[0]])
@@ -393,16 +338,6 @@ if __name__ == "__main__":
                     for _ in anchors:
                         np.save(os.path.join(savedir, mode, "labels", f"sample{start_index + i}_{labelcount}.npy"), labels)
                         labelcount += 1
-
-                    # Debugging
-                    # import polyscope as ps 
-                    # ps.remove_all_structures()
-                    # ps.init() 
-                    # ps_mesh = ps.register_surface_mesh("mesh", soup.vertices, soup.indices, edge_width=1) 
-                    # ps_mesh.add_scalar_quantity("gt", labels, defined_on='faces', enabled=True)
-                    # ps_curve = ps.register_curve_network(f"anchors", np.mean(soup.vertices[soup.indices[anchors]], axis=1),
-                    #                                         np.array([[i,i] for i in range(len(anchors))]), color=[1,0,0], enabled=True)
-                    # ps.show() 
                     
             with open(os.path.join(savedir, mode, "anchors", f"sample{start_index + i}.pkl"), 'wb') as f:
                 pickle.dump(totanchors, f)

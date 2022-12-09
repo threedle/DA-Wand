@@ -3,6 +3,7 @@
 ![Pytorch](https://img.shields.io/badge/PyTorch->=1.11.0-Red?logo=pytorch)
 ![CUDA](https://img.shields.io/badge/CUDA->=11.3.1-Red?logo=CUDA)
 
+![teaser](./media/teaser.png)
 
 Public code release for "DA Wand: Distortion-Aware Selection using Neural Mesh Parameterization".
 
@@ -10,7 +11,12 @@ Public code release for "DA Wand: Distortion-Aware Selection using Neural Mesh P
 ### Installation
 
 ```
+# With GPU 
 conda env create --file dawand.yml
+conda activate dawand
+
+# Without GPU 
+conda env create --file dawand_cpu.yml
 conda activate dawand
 ```
 
@@ -22,17 +28,13 @@ conda activate dawand
 
 ## Training
 ### Download original training data from paper 
+[Initial Primitives](https://drive.google.com/file/d/1Q2GdCjp59of64rrFrMqZCNAPV9QGOrKQ/view?usp=sharing)
+
 [Synthetic Dataset](https://drive.google.com/file/d/1fWASZLzh85WWLhQi6gYJg1uRJK5m92yK/view?usp=sharing)
-[Distortion Self-Supervision Dataset](https://drive.google.com/file/d/1AjfXRL6UhPJSNXlEucDKV0AvsvZx-Uya/view?usp=sharing)
 
-To train, simply provide the path to the dataset folder as inputs to the argument `--dataroot` and the path to the test subfolder to the argument `--test_dir`. See the `scripts` folder for example commands for training the network with the same parameters as in the paper. 
-```bash 
-# Synthetic Pretraining 
-python train_v2.py --gpu_ids 0 --mode evaluation --shuffle_topo --export_preds --export_view_freq 10 --run_test_freq 10 --ncf 16 16 16 16 16 16 --niter_decay 10 --niter 150 --resblocks 3 --lr 0.001 --drop_relu --num_threads 0 --save_latest_freq 10 --save_epoch_freq 2 --selection_module --reweight_loss --dataset_mode intseg --arch intseg --test_dir ./synthetic_dataset/test --export_save_path outputs --dataroot synthetic_dataset --checkpoints_dir outputs --max_sample_size 8000 --supervised --extrinsic_condition_placement pre --batch_size 15 --name pretrain --cachefolder cache --anchorcachefolder anchorcache --resconv --batch_size 8 --leakyrelu --layernorm --dropout --extrinsic_features onehot hks --num_aug 1 --vnormaug --testaug --edgefeatures dihedrals
+[Distortion Self-Supervision Dataset](https://drive.google.com/file/d/1CjjlwzZdugoMhSnWHTTUcT5F6wrcJGgv/view?usp=share_link)
 
-# Distortion self-supervision 
-python train_v2.py --gpu_ids 0 --mode evaluation --shuffle_topo --export_view_freq 4 --run_test_freq 4 --ncf 16 16 16 16 16 16 --niter_decay 10 --niter 150 --resblocks 3 --lr 0.001 --drop_relu --num_threads 0 --save_latest_freq 10 --save_epoch_freq 2 --selection_module --reweight_loss --dataset_mode intseg --arch intseg --resconv --batch_size 8 --leakyrelu --layernorm --load_pretrain --which_epoch best --extrinsic_condition_placement pre --extrinsic_features onehot hks --edgefeatures dihedrals --network_load_path ./outputs/pretrain --segboundary neighbor  --export_preds --distortion_loss count --distortion_metric arap --name dawand --cachefolder cache --anchorcachefolder anchorcache --delayed_distortion_epochs 0 --step2paramloss --export_save_path outputs --checkpoints_dir outputs --supervised --dataroot distortion_dataset --test_dir distortion_dataset/test --mixedtraining --max_grad 5 --num_aug 1 --vnormaug --testaug --cut_param --gcsmoothness --gcsmoothness_weight 0.001 
-```
+To train, simply provide the path to the dataset folder as inputs to the argument `--dataroot` and the path to the test subfolder to the argument `--test_dir`. Set `--gpu_ids` to -1 if training without a GPU. See the `scripts` folder for example commands for training the network with the same parameters as in the paper. 
 
 ### Generate Synthetic Dataset 
 Call the script in `./scripts/generate_synthetic_data.sh` to generate the synthetic dataset using the procedure outlined in the paper. The data will be stored in `./datasets/synthetic_data`. 
@@ -54,6 +56,23 @@ The differentiable parameterization layer enables training DA Wand over any arbi
 To train with mixed data, simply pass the flags `--supervised --mixedtraining` into the `train.py` call. 
 
 ## Interactive Demo 
+./media/demo.mp4
+
+The interactive demo was created using [Polyscope](https://github.com/nmwsharp/polyscope). To run the demo, run the following command 
+```bash
+python interactive.py --modeldir ./checkpoints --modelname dawand --meshdir {path to obj file} --meshfile {name of obj file}
+```
+To use a different DAWand model, simply change the inputs to `modeldir` and `modelname`. The application will expect the model weights to be saved with the naming convention `{modelname}_net.pth`
+
+**Note:** DA Wand is trained on meshes within a restricted edge range (5000 - 12,000), and will be mostly effective on meshes within that range. For meshes of lower or higher resolution, we recommend either remeshing or retraining the model to meet the desired the resolution. 
+
+## Acknowledgements
+The implementation code for DA Wand relies on a number of excellent public source projects for geometry processing, analysis, and visualization. These projects are acknowledged below:
+- [libigl](https://github.com/libigl/libigl-python-bindings/)
+- [PyMesh](https://github.com/PyMesh/PyMesh)
+- [DiffusionNet](https://github.com/nmwsharp/diffusion-net)
+- [Polyscope](https://github.com/nmwsharp/polyscope)
+- [PyVista](https://github.com/pyvista)
 
 ## Citation
 ```

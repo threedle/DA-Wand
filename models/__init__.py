@@ -1,8 +1,8 @@
 def create_model(opt):
-    from .mesh_intseg import IntSegModel
+    from .dawand import DAWand
     
-    if opt.arch == "intseg":
-        model = IntSegModel(opt)
+    if opt.arch == "meshcnn":
+        model = DAWand(opt)
     else: 
         raise ValueError(f"Unsupported architecture option: {opt.arch}")
     return model

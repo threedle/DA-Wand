@@ -31,8 +31,9 @@ class BaseOptions:
         self.parser.add_argument("--clamp", type=str, choices=['sigmoid', 'tanh', 'softmax'], default='sigmoid', help="type of sigmoid to apply to segmentation output")
         self.parser.add_argument("--resconv", action="store_true", help="use residual mesh convolutions instead of regular")
         self.parser.add_argument("--leakyrelu", action="store_true", help="use leaky relu")
+        self.parser.add_argument("--dropout", action='store_true', help="apply dropout in diffnet MLP layers")
         self.parser.add_argument("--layernorm", action="store_true", help="use layer norm instead of instance norms")
-        self.parser.add_argument('--arch', type=str, default='intseg', help='selects network to use') #todo add choices
+        self.parser.add_argument('--arch', type=str, default='meshcnn', help='selects network to use') #todo add choices
         self.parser.add_argument('--weight_init', choices=["gaussian", "binary"], default='gaussian', help='how to initialize weights for conditioning')
         self.parser.add_argument('--resblocks', type=int, default=0, help='# of res blocks')
         self.parser.add_argument('--ncf', nargs='+', default=[16, 32, 32], type=int, help='conv filters')
@@ -138,10 +139,6 @@ class BaseOptions:
             torch.manual_seed(self.opt.seed)
             np.random.seed(self.opt.seed)
             random.seed(self.opt.seed)
-
-        if self.opt.export_folder:
-            self.opt.export_folder = os.path.join(self.opt.export_save_path, self.opt.name, self.opt.export_folder)
-            util.mkdir(self.opt.export_folder)
 
         if self.is_train:
             print('------------ Options -------------')

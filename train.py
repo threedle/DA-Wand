@@ -36,10 +36,6 @@ if __name__ == '__main__':
     dataset = DataLoader(opt)
     dataset_size = len(dataset.dataset)
     print('#training meshes = %d' % dataset_size)
-    # meshnames = [] 
-    # for i, data in enumerate(dataset):
-    #     meshnames.extend(file for file in data['file'])
-    # print(f"Meshes: {meshnames}")
     
     if opt.run_test_freq > 0:
         # Generate test cache once 
@@ -61,7 +57,6 @@ if __name__ == '__main__':
                 os.remove(meanstd_path)
         
         print("Generating test cache...")
-        # testopt.overwriteopcache = True 
         testdata = DataLoader(testopt)
         print(f'# testing meshes = {len(testdata.dataset)}')
 
@@ -80,27 +75,11 @@ if __name__ == '__main__':
     if opt.continue_train == True and os.path.exists(os.path.join(cachedir, "losses.pkl")) and os.path.exists(os.path.join(cachedir, "dicts.pkl")):
         print(f"Loading losses and metrics from cache...") 
         with open(os.path.join(cachedir, "losses.pkl"), 'rb') as f:
-            avg_losses, test_losses, test_epochs, best_test_stats, \
-                s1_distortions, s2_distortions, avg_contrastive_loss, \
-                test_s1_distortion, test_s2_distortion, test_contloss = pickle.load(f)
-        with open(os.path.join(cachedir, "dicts.pkl"), 'rb') as f:
-            metricdict, batchdict, test_losses_dict, train_losses_dict, test_distort_dict = pickle.load(f)
+            avg_losses, test_losses, test_epochs, best_test_stats  = pickle.load(f)
     else:
         avg_losses = []
         test_losses = []
         test_epochs = []
-        s1_distortions = [] 
-        s2_distortions = [] 
-        avg_contrastive_loss = [] 
-        test_s1_distortion = [] 
-        test_s2_distortion = [] 
-        test_contloss = []
-        
-        metricdict = defaultdict(list)
-        batchdict = defaultdict(lambda: defaultdict(list))
-        test_losses_dict = defaultdict(lambda: defaultdict(list))
-        train_losses_dict = defaultdict(lambda: defaultdict(list))
-        test_distort_dict = defaultdict(lambda: defaultdict(list))
         
         best_test_stats = 0 
     for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1): 
@@ -110,11 +89,6 @@ if __name__ == '__main__':
         iter_data_time = time.time()
         epoch_iter = 0
         epoch_loss = 0
-        epoch_acc = 0
-        
-        epoch_contloss = 0
-        epoch_s1_distortion = 0 
-        epoch_s2_distortion = 0
             
         for i, data in enumerate(dataset):
             # Edge case: if whole batch is invalid then data is None 
@@ -143,13 +117,6 @@ if __name__ == '__main__':
             success = model.set_input(data)
             if not success:
                 continue 
-                        
-            if opt.profile == True:
-                from torch.profiler import profile, record_function, ProfilerActivity
-                with profile(activities=[ProfilerActivity.CPU]) as prof:
-                    with record_function('model_train'):
-                        loss, loss_dict = model.optimize_parameters(epoch)
-                print(prof.key_averages().table(sort_by="self_cpu_time_total", row_limit=50))
             else:
                 loss, loss_dict = model.optimize_parameters(epoch)
             
@@ -187,17 +154,8 @@ if __name__ == '__main__':
         # Cache losses 
         avg_losses.append(epoch_loss / dataset_size)
         with open(os.path.join(cachedir, "losses.pkl"), 'wb') as f:
-            pickle.dump((avg_losses, test_losses, test_epochs, best_test_stats, s1_distortions, s2_distortions,
-                         avg_contrastive_loss, test_s1_distortion, test_s2_distortion, test_contloss), f)
-        
-        # Training batch losses 
-        for meshname, tmp_dict in loss_dict.items():
-            for key, val in tmp_dict.items():
-                train_losses_dict[meshname][key].append(val)
-                        
-        with open(os.path.join(cachedir, "dicts.pkl"), 'wb') as f:
-            pickle.dump((metricdict, batchdict, test_losses_dict, train_losses_dict, test_distort_dict), f)
-        
+            pickle.dump((avg_losses, test_losses, test_epochs, best_test_stats), f)
+    
         if opt.lr_policy:
             model.update_learning_rate()
             
@@ -209,22 +167,7 @@ if __name__ == '__main__':
             # NOTE: This means every shape gets equal weight in the mean
             # TODO: keep track of parameterization distortion here 
             testopt.which_epoch = epoch 
-            avg_loss, metricnames, avgstats, testdict, lossesdict, distortdict = run_test(epoch, testdata, testopt)
-            # Save epoch metrics
-            for j in range(len(metricnames)):
-                metricname = metricnames[j]
-                metricdict[metricname].append(avgstats[j])
-                # Keyed by metric -> meshname
-                for name, vals in testdict[metricname].items():
-                    batchdict[metricname][name].append(np.mean(vals))
-            # Save epoch losses
-            for meshname, tmp_dict in lossesdict.items():
-                for key, val in tmp_dict.items():
-                    test_losses_dict[meshname][key].append(val)
-                
-            for distortname, meshdict in distortdict.items():
-                for meshname, val in meshdict.items():
-                    test_losses_dict[meshname][distortname].append(val)
+            avg_loss, metricnames, avgstats = run_test(epoch, testdata, testopt)
                     
             test_losses.append(avg_loss)
             test_epochs.append(epoch)
@@ -239,11 +182,7 @@ if __name__ == '__main__':
                     print(f"Saved best network at epoch {epoch}")
             
             with open(os.path.join(cachedir, "losses.pkl"), 'wb') as f:
-                pickle.dump((avg_losses, test_losses, test_epochs, best_test_stats, s1_distortions, s2_distortions,
-                            avg_contrastive_loss, test_s1_distortion, test_s2_distortion, test_contloss), f)
-            
-            with open(os.path.join(cachedir, "dicts.pkl"), 'wb') as f:
-                pickle.dump((metricdict, batchdict, test_losses_dict, train_losses_dict, test_distort_dict), f)
+                pickle.dump((avg_losses, test_losses, test_epochs, best_test_stats), f)
                 
     writer.close()
 
@@ -262,59 +201,3 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(opt.export_save_path, opt.name, f"loss.png"))
     plt.cla()
     plt.close()
-    
-    # Training loss breakdown  
-    for meshname, losshistory in train_losses_dict.items():
-        fig, ax = plt.subplots()
-        for name, vals in losshistory.items():
-            ax.plot(range(len(avg_losses)), vals, label=name)
-        ax.set_title(f"Train {meshname}: Loss Breakdown")
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel("Loss")
-        ax.legend()
-        fig.tight_layout()
-        plt.savefig(os.path.join(opt.export_save_path, opt.name, f"train_{meshname}_loss.png"))
-        plt.cla()
-        plt.close()
-    
-    # Testing stats 
-    for key, metrichistory in metricdict.items():
-        fig, ax = plt.subplots()
-        ax.plot(test_epochs, metrichistory)
-        ax.set_title(f"Test {key}")
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel(key)
-        fig.tight_layout()
-        plt.savefig(os.path.join(opt.export_save_path, opt.name, f"test_{key}.png"))
-        plt.cla()
-        plt.close()
-
-    # Shape Batches
-    for key, batchhistory in batchdict.items():
-        fig, ax = plt.subplots()
-        for name, vals in batchhistory.items():
-            ax.plot(test_epochs, vals, label=name)
-        ax.set_title(f"Test {key} by Shape")
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel(key)
-        ax.legend()
-        fig.tight_layout()
-        plt.savefig(os.path.join(opt.export_save_path, opt.name, f"test_{key}_batch.png"))
-        plt.cla()
-        plt.close()
-
-    # Loss breakdown by shape batch
-    for meshname, losshistory in test_losses_dict.items():
-        fig, ax = plt.subplots()
-        for name, vals in losshistory.items():
-            ax.plot(test_epochs, vals, label=name)
-        ax.set_title(f"Test {meshname}: Loss Breakdown")
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel("Loss")
-        ax.legend()
-        fig.tight_layout()
-        plt.savefig(os.path.join(opt.export_save_path, opt.name, f"test_{meshname}_loss.png"))
-        plt.cla()
-        plt.close()
-
-

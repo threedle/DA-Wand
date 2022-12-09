@@ -81,26 +81,21 @@ def edgetoface(fe, meshes):
     fe_f = torch.stack(fe_f)
     return fe_f 
 
-def define_classifier(opt, input_nc, ncf, gpu_ids, arch, init_type, init_gain, ninput_edges=None, nclasses=None):
+def define_classifier(opt, input_nc, ncf, gpu_ids, init_type, init_gain):
     net = None
 
-    # Interactive segmentation architecture: U-Net with conditional segmentation module
+    # MeshCNN architecture: U-Net with conditional segmentation module
     down_convs = [input_nc] + ncf
     up_convs = ncf[::-1]
-    if nclasses is not None:
-        up_convs += [nclasses]
         
-    pool_res = opt.pool_res
+    pool_res = []
     transfer = opt.transfer_data_off # False if turned off
     net = MeshSegmentation(pool_res, down_convs, up_convs, blocks=opt.resblocks,
-                                export_pool=opt.export_pool, ffn=opt.ffn,
-                            condition=opt.condition, unpool=opt.unpool, softmax=opt.softmax,
-                                transfer_data=transfer, drop_relu=opt.drop_relu, poolorder=opt.poolorder,
-                            time=opt.time, transform_condition=opt.transform_condition, clamp=opt.clamp,
-                            cond_output_dim=opt.cond_output_dim, extrinsics=opt.extrinsic_features,
-                            selectdepth=opt.selectdepth, selectwidth=opt.selectwidth, binary_conv=opt.binary_conv,
+                            softmax=opt.softmax, transfer_data=transfer, drop_relu=opt.drop_relu,
+                            time=opt.time, clamp=opt.clamp,
+                            extrinsics=opt.extrinsic_features, selectdepth=opt.selectdepth, 
+                            selectwidth=opt.selectwidth, binary_conv=opt.binary_conv,
                             extrinsic_cond=opt.extrinsic_condition_placement, selection_prediction=opt.selection_module,
-                            attention_cutoff=opt.attention_cutoff, n_attention_heads=opt.n_attention_heads,
                             resconv=opt.resconv, leakyrelu=opt.leakyrelu, ln=opt.layernorm, dropout=opt.dropout)
     
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -149,91 +144,6 @@ class MeshEncoderDecoder(nn.Module):
 
     def __call__(self, x, meshes, layer):
         return self.forward(x, meshes, layer)
-
-# class MeshSegmentationGenerator(nn.Module):
-#     """Network for interactive segmentation
-#     """
-#     def __init__(self, pools, down_convs, up_convs, blocks=0, fcs=None, transfer_data=True, drop_relu=True,
-#                  export_pool=False, ffn=False, condition=None, unpool="original", time=False,
-#                  transform_condition=False, cond_output_dim=None):
-#         super(MeshSegmentationGenerator, self).__init__()
-#         self.condition = condition
-#         self.unpool = unpool
-#         self.transfer_data = transfer_data
-#         self.ffn = None
-#         self.time = time
-#         if ffn == True:
-#             self.ffn = FourierFeatureTransform(down_convs[0])
-#             down_convs[0] += 256 * 2 # FFN concats Fourier features to the input
-#         self.encoder = MeshEncoder(pools, down_convs, blocks=blocks, fcs=fcs, export_pool=export_pool)
-#         unrolls = pools[:-1].copy()
-#         unrolls.reverse()
-        
-#         # TODO: intrinsic conditioning features here are worthless 
-#         condition_dims = 0
-#         if condition == "input":
-#             condition_dims = down_convs[0]
-#         elif condition in ["coarse", "upsample"]:
-#             condition_dims = down_convs[-1]
-#         elif condition == "position":
-#             condition_dims = 3
-#         elif condition is not None:
-#             raise NotImplementedError(f"Condition setting {condition} not implemented!")
-        
-#         # Whether to pass conditioning feature through MLP 
-#         if transform_condition == False:
-#             cond_output_dim = None
-#         elif cond_output_dim is None and condition is not None:
-#             cond_output_dim = condition_dims
-            
-#         self.decoder = MeshDecoderGenerator(unrolls, up_convs, blocks=blocks, transfer_data=transfer_data, drop_relu=drop_relu,
-#                                    down_convs=down_convs, cond_input_dim=condition_dims, cond_output_dim=cond_output_dim)
-#         # NOTE: We need to keep up convs at a fixed size in order to apply the classifiction module at all levels
-#         self.classification = SelectionPrediction(n_input=up_convs[-1] + condition_dims)
-
-#     def forward(self, x, meshes, pred_upsample, layer, export_pool):
-#         if self.ffn is not None:
-#             x = self.ffn(x)
-#         fe, before_pool, conv_unpool, conv_unpool_weights = self.encoder((x, meshes), export_pool, time=self.time)
-#         if self.unpool == "original":
-#             conv_unpool_weights = None
-#         if layer == "prepool":
-#             # IMPT: last encoding layer does NOT have pooling
-#             before_pool[-1] = fe
-#             return before_pool
-#         condition_source = None
-#         if self.condition == "input":
-#             condition_source = x
-#         elif self.condition == "coarse":
-#             condition_source = fe
-#         elif self.condition == "upsample":
-#             condition_source = "upsample"
-#         for final, fe in self.decoder((fe, meshes), before_pool, conv_unpool, conv_unpool_weights,
-#                                       pred_upsample, condition_source, time=self.time):
-#             if self.time==True:
-#                 import time
-#                 t0 = time.time()
-#             # Convert edge features to vertices
-#             # NOTE: M x C x E => M x V x C for selection prediction
-#             fe_v = []
-#             for i in range(len(meshes)):
-#                 mesh = meshes[i]
-#                 edge_ids = torch.tensor(list(mesh.topology.edges.keys()))
-#                 _, sort_ids = torch.sort(edge_ids)
-#                 topo_edge_map = dict(zip(edge_ids.tolist(), sort_ids.tolist()))
-#                 fe_v.append(torch.vstack([torch.mean(torch.vstack([fe[i, :, topo_edge_map[e.index]] for e in list(v.adjacentEdges())]), dim=0)
-#                             for key, v in sorted(mesh.topology.vertices.items())]))
-#             # Pad and cat
-#             target_v = max([len(fe) for fe in fe_v])
-#             fe_v = [torch.nn.functional.pad(fe, (0, 0, 0, target_v - len(fe))) for fe in fe_v]
-#             fe_v = torch.stack(fe_v)
-#             if self.time==True:
-#                 print(f"Edge to vertex feature conversion time: {time.time() - t0} sec.")
-#                 t0 = time.time()
-#             yield self.classification(fe_v, self.time)
-
-#     def __call__(self, x, meshes, pred_upsample=False, layer = None, export_pool = False):
-#         return self.forward(x, meshes, pred_upsample, layer, export_pool)
 
 # Only correct version of floodfill -- recursive  
 # TODO: This creates islands... WHY????
@@ -900,7 +810,7 @@ class MeshSegmentation(nn.Module):
     """Network for interactive segmentation
     """
     def __init__(self, pools, down_convs, up_convs, blocks=0, fcs=None, transfer_data=True, drop_relu=True,
-                 export_pool=False, ffn=False, condition=None, unpool="original", time=False, poolorder='norm',
+                 export_pool=False, condition=None, unpool="original", time=False, poolorder='norm', ffn=False,
                  transform_condition=False, cond_output_dim=None, extrinsics=None, clamp="sigmoid", predict="face",
                  selectwidth=256, selectdepth=3, extrinsic_cond = "post", selection_prediction=False, binary_conv=False,
                  softmax=False, attention_cutoff=None, n_attention_heads=0, resconv=False, leakyrelu=False, ln=False, 
@@ -1169,6 +1079,30 @@ class LayerNormPad(nn.Module):
         # Padded normalization 
         x = (x - means)/stds
         return x 
+
+class MResConv(nn.Module):
+    def __init__(self, in_channels, out_channels, leakyrelu=False, skips=1):
+        super(MResConv, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.skips = skips
+        if leakyrelu:
+            self.relu = nn.ReLU()
+        else: 
+            self.relu = nn.LeakyReLU()
+        self.conv0 = MeshConv(self.in_channels, self.out_channels, bias=False)
+        for i in range(self.skips):
+            setattr(self, 'conv{}'.format(i + 1),
+                    MeshConv(self.out_channels, self.out_channels, bias=False))
+
+    def forward(self, x, mesh):
+        x = self.conv0(x, mesh)
+        x1 = x
+        for i in range(self.skips):
+            x = getattr(self, 'conv{}'.format(i + 1))(x, mesh)
+        x += x1
+        x = self.relu(x)
+        return x
     
 class DownConv(nn.Module):
     def __init__(self, in_channels, out_channels, blocks=0, pool=0, poolorder="norm", resconv=False, leakyrelu=False, ln=False):

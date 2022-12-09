@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from threading import Thread
-from models.layers.mesh_union import MeshUnion
 from models.layers.meshing.analysis import computeEdgeNeighborMatrix
 import numpy as np
 from heapq import heappop, heapify

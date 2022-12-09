@@ -44,7 +44,6 @@ if __name__ == "__main__":
     parser.add_argument('--modelname', default="best", help='loads \{modelname\}_net.pth')
     parser.add_argument('--meshfile', default="sample81.obj", help='loads obj file from the meshdir')
     parser.add_argument('--optname', default="opt", help='loads \{optname\}.pkl from modeldir')
-    parser.add_argument('--ffpost', choices={"v1", "v2"}, default=None, help='use floodfill postprocessing')
     args = parser.parse_args()
     
     with open(os.path.join(args.modeldir, f"{args.optname}.pkl"), 'rb') as f:
@@ -52,6 +51,10 @@ if __name__ == "__main__":
     opt.export_save_path = args.modeldir
     opt.dataroot = args.meshdir 
     opt.test_dir = args.meshdir
+    opt.network_load_path = args.modeldir 
+    
+    # TODO: temporary opt fix 
+    opt.arch = "meshcnn"
     
     # Turn off all extraneous settings 
     opt.name = ""
@@ -79,19 +82,13 @@ if __name__ == "__main__":
     opt.gcsupervision = False 
     opt.floodfillparam = False 
     
-    # NOTE: hacky way to guarantee only 1 copy of mesh in dataset
-    # but it works 
+    # NOTE: hacky way to guarantee only 1 copy of mesh in dataset but it works 
     meshname = args.meshfile.replace(".obj", "")
     opt.subset = [f"{meshname}_0"] 
     opt.max_dataset_size = 1
     opt.max_sample_size = 1
     opt.interactive = True 
-    
-    # Only for older version of options 
-    opt.resconv = False 
-    opt.leakyrelu = False 
-    opt.layernorm = False 
-    
+        
     opt.overwritecache = True 
     # opt.overwriteopcache = True   
     opt.overwriteanchorcache = True   
@@ -113,7 +110,7 @@ if __name__ == "__main__":
     pred_cache = {} 
     mode = "model"
     prev_mode = "model"
-    mode_options = ['model', 'dcharts', 'expmaps']
+    mode_options = ['model']
     
     # Default settings 
     alpha = 1 
@@ -122,9 +119,9 @@ if __name__ == "__main__":
     dthreshold = 0.3 
     ethreshold = 100 
     method = None 
-    postprocess = [] 
-    ff = False 
-    gc = False 
+    postprocess = ["gc", "ff"] 
+    ff = True 
+    gc = True 
     uvmode = False 
     include_anchor = True 
     patchgrow = False 
@@ -156,7 +153,7 @@ if __name__ == "__main__":
         psim.PushItemWidth(150)
 
         # == Title window 
-        psim.TextUnformatted("Interactive Segmentation Module")
+        psim.TextUnformatted("DA Wand Interactive Module")
         psim.TextUnformatted(f"Current anchor list: {current_index_list}")
         n_selection = len(np.where(preds >= 0.5)[0]) if preds is not None else 0 
         psim.TextUnformatted(f"# faces in selection: {n_selection}")
@@ -186,56 +183,8 @@ if __name__ == "__main__":
             ps.show() 
         
         # changed, include_anchor = psim.Checkbox("Anchor include mode", include_anchor) 
-        changed, patchgrow = psim.Checkbox("Patch growing", patchgrow) 
+        changed, patchgrow = psim.Checkbox("Patch growing (experimental)", patchgrow) 
         psim.Separator()
-        
-        # Check for method change 
-        # changed = psim.BeginCombo("Pick one", mode)
-        # if changed:
-        #     prev_mode = mode 
-        #     for val in mode_options:
-        #         _, selected = psim.Selectable(val, mode==val)
-        #         if selected:
-        #             mode = val 
-        #     psim.EndCombo()
-            
-        #     # If mode changed and predictions not cached, then generate 
-        #     if len(current_index_list) > 0 and mode != prev_mode: 
-        #         # TODO: REFACTOR ALL BELOW 
-        #         if mode not in pred_cache.keys():
-        #             # Run relevant mode inference 
-        #             if mode == "model":
-        #                 preds = run_forward_pass(model, dataset, current_index_list)
-        #                 preds = preds.squeeze().detach().cpu().numpy()                        
-        #                 pred_cache["model"] = preds
-        #                 # Default is to floodfill 
-        #                 if ff: 
-        #                     preds = floodfill_scalar_v2(mesh, torch.from_numpy(preds), current_index_list[0], previous_preds=torch.from_numpy(previous_preds) if previous_preds is not None else None)
-        #                     pred_cache["model_ff"] = preds.squeeze().detach().cpu().numpy() 
-        #                 preds = preds.squeeze().detach().cpu().numpy() 
-        #                 previous_preds = preds 
-        #                 ps_mesh.add_scalar_quantity("model soft segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-        #                 hard_preds = np.round(preds)
-        #                 ps_mesh.add_scalar_quantity("model hard segmentation", hard_preds, defined_on='faces', enabled=True, vminmax=(0,1))
-        #             elif mode == "dcharts":
-        #                 from util.util import dcharts 
-        #                 vs, fs, _ = mesh.export_soup()
-        #                 if not hasattr(mesh, "fareas"):
-        #                     computeFaceAreas(mesh)
-        #                 chart = dcharts(mesh, current_index_list[0], alpha=alpha, beta=beta, gamma=gamma, threshold=dthreshold)
-        #                 # Save prediction 
-        #                 preds = np.zeros(len(fs))
-        #                 preds[chart] = 1
-        #                 ps_mesh.add_scalar_quantity("dcharts segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-        #                 pred_cache[mode] = preds
-        #             elif mode == "expmaps":
-        #                 from util.util import run_expmaps 
-        #                 # Defaults  
-        #                 preds = run_expmaps(os.path.join(args.meshdir, args.meshfile), current_index_list[0], threshold=ethreshold)
-        #                 ps_mesh.add_scalar_quantity("expmaps segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-        #                 pred_cache[mode] = preds
-        #         psim.CloseCurrentPopup()
-        #         ps.show()
         
         # Postprocess options  
         psim.Separator() 
@@ -308,36 +257,6 @@ if __name__ == "__main__":
                     ps_mesh.add_scalar_quantity("model hard segmentation", hard_preds, defined_on='faces', enabled=True, vminmax=(0,1))
                     psim.CloseCurrentPopup()
                     ps.show()
-        
-        # For other modes: allow custom parameters 
-        if mode == "dcharts":
-            changed_alpha, alpha = psim.InputFloat("alpha", alpha) 
-            changed_beta, beta = psim.InputFloat("beta", beta) 
-            changed_gamma, gamma = psim.InputFloat("gamma", gamma) 
-            changed_threshold, dthreshold = psim.InputFloat("threshold", dthreshold) 
-            
-            if (changed_alpha or changed_beta or changed_gamma or changed_threshold) and len(current_index_list) > 0: 
-                from util.util import dcharts 
-                vs, fs, _ = mesh.export_soup()
-                chart = dcharts(mesh, current_index_list[0], alpha=alpha, beta=beta, gamma=gamma, threshold=dthreshold)
-                # Save prediction 
-                preds = np.zeros(len(fs))
-                preds[chart] = 1
-                ps_mesh.add_scalar_quantity("dcharts segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-                pred_cache[mode] = preds
-                psim.CloseCurrentPopup()
-                ps.show()
-                
-        if mode == "expmaps":
-            changed_threshold, ethreshold = psim.InputFloat("threshold", ethreshold) 
-            
-            if changed_threshold and len(current_index_list) > 0: 
-                from util.util import run_expmaps
-                preds = run_expmaps(os.path.join(args.meshdir, args.meshfile), current_index_list[0], threshold=ethreshold)
-                ps_mesh.add_scalar_quantity("expmaps segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-                pred_cache[mode] = preds
-                psim.CloseCurrentPopup()
-                ps.show()
                 
         # Compute and show SLIM UV (texture + embedding)
         changed, uvmode = psim.Checkbox("Show UV", uvmode) 
@@ -355,8 +274,7 @@ if __name__ == "__main__":
                     
                     selection = np.where(preds >= 0.5)[0]
                 else: 
-                    from util.util import run_slim, get_ss
-                    from util.parameterization import parameterize_torch
+                    from util.util import run_slim
 
                     # Compute UVs using SLIM 
                     selection = np.where(preds >= 0.5)[0]
@@ -364,30 +282,9 @@ if __name__ == "__main__":
                     submesh = Mesh(subvs, subfs)
                     slim_uv, slim_energy, did_cut = run_slim(submesh, cut=True)
                     subvs, subfs, _ = submesh.export_soup() 
+                    if slim_energy > 100:  
+                        print(f"Warning: SLIM bad convergence")
                     
-                    # Also run LSCM and compare energies 
-                    # vs_tensor = torch.from_numpy(subvs).float()
-                    # fs_tensor = torch.from_numpy(subfs).long()
-                    # lscm_uv = parameterize_torch(vs_tensor, fs_tensor,
-                    #                             return_face_err=False,
-                    #                             fixzero=True, verbose=False)
-                    # lscm_uv = lscm_uv.detach().numpy()
-                    
-                    # copysub = Mesh(subvs, subfs)
-                    # slim_ss = get_ss(copysub, slim_uv)
-                    # lscm_ss = get_ss(copysub, lscm_uv)
-                    
-                    # isometric_lscm = np.maximum(lscm_ss[:,0], 1/lscm_ss[:,1])
-                    # isometric_lscm = np.mean((isometric_lscm - 1) ** 2)
-                    
-                    # isometric_slim = np.maximum(slim_ss[:,0], 1/slim_ss[:,1])
-                    # isometric_slim = np.mean((isometric_slim - 1) ** 2)
-                    
-                    # if isometric_lscm < isometric_slim: 
-                    #     uv = lscm_uv 
-                    #     isometric = isometric_lscm
-                    #     method = "LSCM"
-                    # else: 
                     uv = slim_uv
                     min_uv = np.min(uv)
                     if min_uv < 0: 
@@ -463,31 +360,7 @@ if __name__ == "__main__":
                 hard_preds = np.round(preds)
                 ps_mesh.add_scalar_quantity("model soft segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
                 ps_mesh.add_scalar_quantity("model hard segmentation", hard_preds, defined_on='faces', enabled=True, vminmax=(0,1))
-            elif mode == "dcharts":
-                from util.util import dcharts 
-                vs, fs, _ = mesh.export_soup()
-                if not hasattr(mesh, "fareas"):
-                    computeFaceAreas(mesh)
-                chart = dcharts(mesh, current_index_list[0], alpha=alpha, beta=beta, gamma=gamma, threshold=dthreshold)
-                # Save prediction 
-                preds = np.zeros(len(fs))
-                preds[chart] = 1
-                ps_mesh.add_scalar_quantity("dcharts segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-                pred_cache[mode] = preds
-                
-            elif mode == "expmaps":
-                from util.util import run_expmaps
-                preds = run_expmaps(os.path.join(args.meshdir, args.meshfile), current_index_list[0], threshold=ethreshold)
-                ps_mesh.add_scalar_quantity("expmaps segmentation", preds, defined_on='faces', enabled=True, vminmax=(0,1))
-                pred_cache[mode] = preds
-                psim.CloseCurrentPopup()
-                ps.show()
-    
-            # Debugging: make sure this scales well to multiple anchor faces 
-            # meshdata = dataset[0]['meshdata']
-            # dataset_mesh = Mesh(meshdata=meshdata)
-            # ps_mesh.add_scalar_quantity("geodesics", dataset_mesh.anchor_vertex_geodesics, defined_on='vertices', enabled=True)
-                        
+           
             anchor_pos = np.mean([mesh.vertices[v.index] for v in mesh.topology.faces[face_index].adjacentVertices()], axis=0, keepdims=True)
             current_anchor_pos.append(anchor_pos)
             

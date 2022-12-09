@@ -9,7 +9,7 @@ from models.layers.meshing.analysis import computeEdgeNeighborMatrix, computeFac
 from models.layers.meshing.io import PolygonSoup
 from pathlib import Path
 import dill as pickle
-from diffusionnet.src.diffusion_net import get_operators_v2
+from util.diffusion_net.geometry import get_operators
 
 def compute_and_cache(mesh, cachepath=None): 
     # Precompute all the standard edge features 
@@ -142,20 +142,7 @@ def condition_and_cache(mesh, opt, cachepath=None, evals=None, evecs=None):
             
             # Average across anchors and neighbor faces 
             condition_fe = np.mean(anchor_dihedrals.transpose(0,2,1).reshape(-1, len(edge_fnormals)), axis=0, keepdims=True)
-            
-            # Debugging 
-            # import polyscope as ps 
-            # from util.util import polyscope_edge_perm
-            # eperm = polyscope_edge_perm(mesh)
-            # ps.init() 
-            # vs, fs, _ = mesh.export_soup()
-            # ps_mesh = ps.register_surface_mesh("mesh", vs, fs, edge_width=1)
-            # ps_mesh.set_edge_permutation(eperm)
-            # ps_mesh.add_scalar_quantity("anchor dihedrals", condition_fe.flatten(), defined_on='edges', enabled=True)
-            # anchor = np.zeros(len(fs))
-            # anchor[np.array(mesh.anchor_fs)] = 1
-            # ps_mesh.add_scalar_quantity("anchor", anchor, defined_on='faces', enabled=True)
-            # ps.show()   
+       
         elif extr == "hks": 
             if not hasattr(mesh, "hks"):
                 # Instead of using options, use np logspace default 
@@ -195,7 +182,6 @@ class IntSegData(BaseDataset):
             self.dir = os.path.join(opt.dataroot, opt.phase)
             self.save_dir = os.path.join(opt.export_save_path, opt.name, opt.phase)
             Path(self.save_dir).mkdir(exist_ok=True, parents=True)
-            self.condition = opt.condition
             self.weight_init = opt.weight_init
             if opt.is_train == True:
                 self.paths, self.cachepaths, self.anchorcachepaths, self.operatorpaths, self.labelpaths, self.anchor_fs, self.anchor_fs_labels, self.augs = self.make_dataset(self.dir, self.opt.max_dataset_size)
@@ -206,7 +192,6 @@ class IntSegData(BaseDataset):
                 self.test_dir = opt.test_dir
                 self.paths, self.cachepaths, self.anchorcachepaths, self.operatorpaths, self.labelpaths, self.anchor_fs, self.anchor_fs_labels, self.augs = self.make_dataset(self.test_dir, self.opt.max_dataset_size)
             self.texturedir = None
-            self.nclasses = opt.nclasses
             self.size = len(self.paths)
             # Maintain Cvxpy layers here 
             self.cvxlayers = [None] * len(self.paths)
@@ -257,13 +242,6 @@ class IntSegData(BaseDataset):
             labels = None
             if labelpath and os.path.exists(labelpath):
                 labels = np.load(labelpath)
-
-            # If saving pools, wipe the old pools from the folder
-            if self.opt.export_pool == True:
-                export_dir = os.path.join(self.save_dir, f"{mesh_i}_pools")
-                if os.path.exists(export_dir):
-                    for file in os.listdir(export_dir):
-                        os.unlink(os.path.join(export_dir, file))
             anchor_fs = self.anchor_fs[index]
 
             # Recompute mesh values only if cache doesn't exist 
@@ -303,61 +281,6 @@ class IntSegData(BaseDataset):
                     augment(mesh, self.opt) 
                 
                 mesh = compute_and_cache(mesh, cachepath)
-                
-                # Debugging: make sure anchor, ground truth, and geodesics correspond correctly 
-                # import polyscope as ps
-                # ps.init()
-                # ps_mesh = ps.register_surface_mesh("mesh", soup.vertices, soup.indices, edge_width=1)
-                # gt = np.copy(labels)
-                # gt[anchor_fs] = 2
-                # ps_mesh.add_scalar_quantity("gt", gt, defined_on="faces", enabled=True)
-                # anchor_pos = np.mean([mesh.vertices[v.index] for find in anchor_fs for v in mesh.topology.faces[find].adjacentVertices()], axis=0, keepdims=True)
-                # ps_curve = ps.register_curve_network("anchor", anchor_pos, np.array([[0,0]]))
-                # ps_mesh.add_scalar_quantity("v_geo", mesh.anchor_vertex_geodesics, defined_on='vertices', enabled=True)
-                # ps_mesh.add_scalar_quantity("edge_geo", mesh.anchor_edge_geodesics, defined_on='edges', enabled=True)
-                # ps_mesh.add_vector_quantity("face normals", mesh.facenormals, defined_on='faces', enabled=True)
-                # # Edge normal curves 
-                # edge_midpoints = np.mean(mesh.vertices[[list(v.index for v in edge.two_vertices()) for \
-                #                                                     edge in mesh.topology.edges.values()]], axis=1)
-                # edge_curves = np.concatenate([edge_midpoints, edge_midpoints + mesh.edgenormals], axis=0)
-                # edge_curve_inds = np.array([[i,len(edge_curves)//2 + i] for i in range(len(edge_curves)//2)])
-                # ps_edge_curve = ps.register_curve_network("edge normals", edge_curves, edge_curve_inds)
-                # ps.show()
-                # raise
-                
-                # Debugging visualize only edge features
-                # import polyscope as ps
-                # ps.init()
-                # ps_mesh = ps.register_surface_mesh("mesh", soup.vertices, soup.indices, edge_width=1)
-                # gt = np.copy(labels)
-                # gt[anchor_fs] = 2
-                # ps_mesh.add_scalar_quantity("gt", gt, defined_on="faces", enabled=True)
-                # ps_mesh.add_scalar_quantity("fareas", mesh.fareas, defined_on='faces', enabled=True)
-                # Edge features 
-                # from util.util import polyscope_edge_perm
-                # eperm = polyscope_edge_perm(mesh)
-                # ps_mesh.set_edge_permutation(eperm)
-                # ps_mesh.add_scalar_quantity("e1", mesh.edgefeatures[0], defined_on='edges', enabled=True)
-                # ps_mesh.add_scalar_quantity("e2", mesh.edgefeatures[1], defined_on='edges', enabled=True)
-                # ps_mesh.add_scalar_quantity("e3", mesh.edgefeatures[2], defined_on='edges', enabled=True)
-                # ps_mesh.add_scalar_quantity("e4", mesh.edgefeatures[3], defined_on='edges', enabled=True)
-                # ps_mesh.add_scalar_quantity("e5", mesh.edgefeatures[4], defined_on='edges', enabled=True)
-                # ps.show()
-                # raise
-            
-            # Set up cvxlayers if set
-            # layer = None 
-            # if self.cvxlayers[index] is None and np.isfinite(self.opt.delayed_distortion_epochs):
-            #     x_var = cp.Variable((2 * len(mesh.vertices), 1))
-            #     A_var = cp.Parameter((2 * len(mesh.topology.faces), 2 * len(mesh.vertices)))
-            #     b_var = cp.Parameter(b.shape)
-            #     objective = cp.Minimize(cp.pnorm(A_var @ x_var - b_var, p=2)**2)
-            #     problem = cp.Problem(objective)
-            #     assert problem.is_dpp()
-            #     layer = CvxpyLayer(problem, parameters=[A_var, b_var], variables=[x_var])
-            #     self.cvxlayers[index] = layer 
-            # elif self.cvxlayers[index] is not None:
-            #     layer = self.cvxlayers[index]
             
             # Compute anchor extrinsics 
             mesh.computeEdgeFeatures(intrinsics=self.opt.edgefeatures)
@@ -372,7 +295,7 @@ class IntSegData(BaseDataset):
             faces = torch.from_numpy(np.ascontiguousarray(mesh.faces)).long()
     
             frames, mass, L, evals, evecs, gradX, gradY = \
-                get_operators_v2(vertices, faces, meshname, op_cache_dir=operatorpath, overwrite_cache=self.opt.overwriteopcache)
+                get_operators(vertices, faces, meshname, op_cache_dir=operatorpath, overwrite_cache=self.opt.overwriteopcache)
             
             mesh.anchor_fs = anchor_fs 
             # NOTE: NOT every value in anchor cache should be a feature 
@@ -416,9 +339,6 @@ class IntSegData(BaseDataset):
             meta['anchor_fs'] = anchor_fs
             meta['mean'] = self.mean 
             meta['std'] = self.std 
-            
-            if self.opt.semantic_loss:
-                meta['anchor_fs_labels'] = self.anchor_fs_labels[index]
                 
             meta['aug'] = aug 
             meta['no'] = mesh.no 
@@ -478,13 +398,6 @@ class IntSegData(BaseDataset):
                 with open(os.path.join(path, "anchors", f"{meshname}.pkl"), 'rb') as f:
                     anchors = pickle.load(f)
                                 
-                # If running semantic loss, then anchors need to have semantic part labels
-                anchor_labels = None 
-                if self.opt.semantic_loss and os.path.exists(os.path.join(path, "anchor_labels", f"{meshname}.pkl")): 
-                    with open(os.path.join(path, "anchor_labels", f"{meshname}.pkl"), 'rb') as f:
-                        anchor_labels = pickle.load(f)
-                    assert len(anchor_labels) == len(anchors), f"Anchor labels length {len(anchor_labels)} need to be same as anchors length {len(anchors)}"
-
                 for i in range(len(anchors)):
                     if len(self.opt.subset) > 0:
                         if f"{meshname}_{i}" not in self.opt.subset:
@@ -504,10 +417,7 @@ class IntSegData(BaseDataset):
                     else:
                         labelpaths.append(None)
                     augs.append(None)
-                    
-                    if anchor_labels is not None: 
-                        anchor_fs_labels.append(anchor_labels[i])
-                        
+
                     # If training + augmentation values: then duplicate and add augmentations
                     # If testing + augmentation: then save new cache values for each augmentation one-off
                     if self.opt.is_train == True or self.opt.testaug == True:
@@ -528,10 +438,6 @@ class IntSegData(BaseDataset):
                                 labelpaths.append(os.path.join(path, "labels", f"{meshname}_{i}.npy"))
                             else:
                                 labelpaths.append(None)
-
-                            if anchor_labels is not None: 
-                                anchor_fs_labels.append(anchor_labels[i])
-                        
                             # Default: inf
                             if len(paths) >= max_size:
                                 stop = True 

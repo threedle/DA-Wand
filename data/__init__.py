@@ -3,16 +3,9 @@ from data.base_dataset import collate_fn
 
 def CreateDataset(opt):
     """loads dataset class"""
-
-    if opt.dataset_mode == "intseg":
-        from data.intseg_data import IntSegData
-        dataset = IntSegData(opt)
-    elif opt.dataset_mode == "basic":
-        from data.basic_data import BasicData
-        dataset = BasicData(opt)
-    elif opt.dataset_mode == "diffnet":
-        from data.diffnetdata import DiffNetData
-        dataset = DiffNetData(opt)
+    from data.intseg_data import IntSegData
+    dataset = IntSegData(opt)
+    
     return dataset
 
 class DataLoader:
