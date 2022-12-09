@@ -25,24 +25,18 @@
     <meta name="twitter:image" content="https://dreamfusion3d.github.io/assets/images/dreamfusion_samples.png" />
     <!-- <meta name="twitter:site" content="" /> -->
 
-    <script src="assets/js/video_comparison.js"></script>
+    <script src="../assets/js/video_comparison.js"></script>
     <script type="module" src="https://unpkg.com/@google/model-viewer@2.0.1/dist/model-viewer.min.js"></script>
 </head>
 
 <body>
     <!-- TODO: Replace banner with teaser image -->
-    <div class="banner">
-      <video class="video lazy"
-          poster="https://dreamfusion-cdn.ajayj.com/sept28/banner_1x6_customhue_A.jpg"
-          autoplay loop playsinline muted>
-        <source data-src="https://dreamfusion-cdn.ajayj.com/sept28/banner_1x6_customhue_A.mp4" type="video/mp4"></source>
-      </video>
-    </div>
+    <img src="../media/teaser.png" style="max-width: 900px;display:block;margin-left:auto;margin-right:auto;margin-top:20px;margin-bottom:-30px"/>
     <div class="highlight-clean" style="padding-bottom: 10px;">
-        <div class="container" style="max-width: 768px;">
+        <div class="container" style="max-width: 768px;margin-bottom:20px">
             <h1 class="text-center"><b>DA Wand</b>: Distortion-Aware Selection using Neural Mesh Parameterization</h1>
         </div>
-        <div class="container" style="max-width: 768px;">
+        <div class="container" style="max-width: 768px">
             <div class="row authors">
                 <div class="col-sm-3">
                     <h5 class="text-center"><a class="text-center" href="https://cs.stanford.edu/~poole/">Richard Liu</a></h5>
@@ -62,19 +56,21 @@
                 </div>
             </div>    
         </div>
-        <div class="buttons" style="margin-bottom: 8px;">
-            <a class="btn btn-light" role="button" href="https://arxiv.org/abs/2209.14988">
-                <svg style="width:24px;height:24px;margin-left:-12px;margin-right:12px" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M16 0H8C6.9 0 6 .9 6 2V18C6 19.1 6.9 20 8 20H20C21.1 20 22 19.1 22 18V6L16 0M20 18H8V2H15V7H20V18M4 4V22H20V24H4C2.9 24 2 23.1 2 22V4H4M10 10V12H18V10H10M10 14V16H15V14H10Z"></path>
-                </svg>Paper
-            </a>
-            <a class="btn btn-light" role="button" href="https://github.com/threedle/DA-Wand">
-                <svg style="width:24px;height:24px;margin-left:-12px;margin-right:12px" width="24px" height="24px" viewBox="0 0 375 531">
-                    <polygon stroke="#000000" points="0.5,0.866 459.5,265.87 0.5,530.874 "/>
-                </svg>
-                Code
-            </a>
-        </div>
+        <div class="container" style="max-width: 768px;text-align:center;">
+            <div class="buttons">
+                <a class="btn btn-light" role="button" href="https://arxiv.org/abs/2209.14988">
+                    <svg style="width:24px;height:24px;margin-left:-12px;margin-right:12px" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M16 0H8C6.9 0 6 .9 6 2V18C6 19.1 6.9 20 8 20H20C21.1 20 22 19.1 22 18V6L16 0M20 18H8V2H15V7H20V18M4 4V22H20V24H4C2.9 24 2 23.1 2 22V4H4M10 10V12H18V10H10M10 14V16H15V14H10Z"></path>
+                    </svg>Paper
+                </a>
+                <a class="btn btn-light" role="button" href="https://github.com/threedle/DA-Wand">
+                    <svg style="width:24px;height:24px;margin-left:-12px;margin-right:12px" width="24px" height="24px" viewBox="0 0 375 531">
+                        <polygon stroke="#000000" points="0.5,0.866 459.5,265.87 0.5,530.874 "/>
+                    </svg>
+                    Code
+                </a>
+            </div>
+        </div> 
     </div>
     <hr class="divider" />
     <div class="container" style="max-width: 768px;">
@@ -83,69 +79,175 @@
                 <h2>Abstract</h2>
                 <p>
                     <!-- <strong> -->
-                        We present a neural technique for learning to select a local sub-region around a point which can be used for mesh parameterization. The motivation for our framework is driven by interactive workflows used for decaling, texturing, or painting on surfaces. Our key idea is to incorporate segmentation probabilities as weights of a classical parameterization method, implemented as a novel differentiable parameterization layer within a neural network framework. We train a segmentation network to select 3D regions that are parameterized into 2D and penalized by the resulting distortion, giving rise to segmentations which are distortion-aware. Following training, a user can use our system to interactively select a point on the mesh and obtain a large, meaningful region around the selection which induces a low-distortion parameterization.
+                    We present a neural technique for learning to select a local sub-region around a point which can be used for mesh parameterization. The motivation for our framework is driven by interactive workflows used for decaling, texturing, or painting on surfaces. Our key idea is to incorporate segmentation probabilities as weights of a classical parameterization method, implemented as a novel differentiable parameterization layer within a neural network framework. We train a segmentation network to select 3D regions that are parameterized into 2D and penalized by the resulting distortion, giving rise to segmentations which are distortion-aware. Following training, a user can use our system to interactively select a point on the mesh and obtain a large, meaningful region around the selection which induces a low-distortion parameterization.
                     <!-- </strong> -->
                 </p>
             </div>
         </div>
     </div>
-    <!-- TODO: Insert video of polyscope demo -->
-    <div class="container" style="max-width: 768px;">
-        <div class="row captioned_videos">
+     <!-- TODO: Show carousel of results (rotating meshes w/ selection point + parameterization) -->
+     <div class="container" style="max-width: 768px;">
+        <div class="row">
             <div class="col-md-12">
-                <!-- Large format devices -->
-                <video class="video lazy d-none d-xs-none d-sm-block" autoplay loop playsinline muted poster="https://dreamfusion-cdn.ajayj.com/sept28/wipe_opposite_6x4_smoothstep.jpg">
-                    <source data-src="https://dreamfusion-cdn.ajayj.com/sept28/wipe_opposite_6x4_smoothstep.mp4" type="video/mp4"></source>
+                <h2>Local Segmentations for Parameterization</h2>
+                <p>DA Wand aims to map a user selection point to a local segmentation which induces a low distortion parameterization. We showcase some example segmentations with parameterizations computed with SLIM.</p>
+            </div>
+            <div data-delay="10000" data-animation="slide" class="nerf_slider_v2 w-slider" data-autoplay="true" data-easing="ease" data-hide-arrows="false" data-disable-swipe="false" data-autoplay-limit="0" data-nav-spacing="3" data-duration="800" data-infinite="true" role="region" aria-label="carousel">
+                <div class="mask w-slider-mask" id="w-slider-mask-0">
+                    <div class="slide w-slide" role="group">
+                        <div class="div-block-9 first_video">
+                            <div class="video_class w-embed">
+                                <video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/265730_19.mp4" type="video/mp4">
+                                </video>
+                            </div>
+                        </div>
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/45090_3.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/66773_18.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/518089_18.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/101635_0.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/81209_4.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/1329188_12.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/636819_3.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/104969_12.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/57140_14.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/98195_14.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/260541_6.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/101620_10.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/1174397_6.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/428602_13.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    <div class="w-slide" role="group">
+                        <div class="div-block-9">
+                            <div class="video_class w-embed"><video width="100%" height="100%" autoplay="" muted="" controls="" loop="" preload="metadata">
+                                    <source src="../media/gallery/163763_16.mp4" type="video/mp4">
+                                </video></div>
+                        </div>
+                    </div>
+                    </div>
+                <div class="w-slider-arrow-left" role="button" tabindex="0" aria-controls="w-slider-mask-0" aria-label="previous slide">
+                    <div class="w-icon-slider-left"></div>
+                </div>
+                <div class="w-slider-arrow-right" role="button" tabindex="0" aria-controls="w-slider-mask-0" aria-label="next slide">
+                    <div class="w-icon-slider-right"></div>
+                </div>
+                <div class="nerf_slide_nav w-slider-nav w-slider-nav-invert w-round"><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 1 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 2 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 3 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 4 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 5 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 6 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 7 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 8 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 9 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot w-active" data-wf-ignore="" aria-label="Show slide 10 of 11" aria-pressed="true" role="button" tabindex="0" style="margin-left: 3px; margin-right: 3px;"></div><div class="w-slider-dot" data-wf-ignore="" aria-label="Show slide 11 of 11" aria-pressed="false" role="button" tabindex="-1" style="margin-left: 3px; margin-right: 3px;"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="container" style="max-width: 768px;">
+        <div class="row">
+            <div class="col-md-12">
+                <h2>Interactive Demo</h2>
+                <p>We leverage a lightweight fully convolutional architecture, which enables DA Wand to produce predictions in (near) realtime. We provide an interactive demo in the repo, which can be run on any mesh. Below we show some examples run on a Macbook <em>without GPU acceleration.</em></p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <video class="video lazy" autoplay controls="" muted="" style="display:inline-block;width:49%;margin:auto;">
+                    <source data-src="../media/demo.mp4" type="video/mp4" src="../media/demo.mp4">
                 </video>
-                <!-- Small format devices -->
-                <video class="video lazy d-xs-block d-sm-none" autoplay loop playsinline muted poster="https://dreamfusion-cdn.ajayj.com/sept28/shaded_3x3_smoothstep.jpg">
-                    <source data-src="https://dreamfusion-cdn.ajayj.com/sept28/shaded_3x3_smoothstep.mp4" type="video/mp4"></source>
+                <video class="video lazy" autoplay controls="" muted="" style="display:inline-block;width:49%;margin:auto;">
+                    <source data-src="../media/demo2.mp4" type="video/mp4" src="../media/demo2.mp4">
                 </video>
-                <h6 class="caption"></h6>
             </div>
         </div>
     </div>
     <hr class="divider" />
-    <!-- TODO: Show network diagram -->
     <div class="container" style="max-width: 768px;">
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Composing objects into a scene</h2>
-                <!-- <p>Our generated NeRF models can be exported to meshes using the marching cubes algorithm for easy integration into 3D renderers or modeling software.</p> -->
-                <video class="video lazy" autoplay loop playsinline controls muted poster="https://dreamfusion-cdn.ajayj.com/carouselx24_128tall.jpg">
-                    <source src="https://dreamfusion-cdn.ajayj.com/carouselx24_128tall.mp4" type="video/mp4"></source>
-                </video>
-            </div>
-        </div>
+        <h2>Network Overview</h2>
     </div>
-    <hr class="divider" />
-    <!-- TODO: Show carousel of results (rotating meshes w/ selection point + parameterization) -->
+    <img src="../media/network.png" style="max-width: 758px;display:block;margin-left:auto;margin-right:auto;margin-top:20px;margin-bottom:20px"/>
     <div class="container" style="max-width: 768px;">
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Generate 3D from text yourself!</h2>
-            </div>
-        </div>
-        <div class="row compositional captioned_videos">
-            <div class="col-sm-8 text">
-                <p class="selectable left" id="compositional_tags_depth_0"></p>
-            </div>
-            <div class="col-sm-4 my-auto">
-                <div class="video-compare-container">
-                    <video id="compositionalVideo" class="video" autoplay loop playsinline muted>
-                        <div class="screen" id="compositionalScreen"></div>
-                        <source id="compositionalVideoSrc" src="https://dreamfusion-cdn.ajayj.com/journey_sept28/cropped/full_continuous/a_DSLR_photo_of_a_squirrel___rgbdn_hq_15000.mp4" type="video/mp4">
-                    </video>
-            </div>
-        </div>
-    </div>
-    <hr class="divider" />
-    <div class="container meshes" id="meshContainer" style="max-width: 768px;">
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Mesh exports</h2>
-                <p>Our generated NeRF models can be exported to meshes using the marching cubes algorithm for easy integration into 3D renderers or modeling software.</p>
-            </div>
+        <div class="col-md-12">
+            <p>DA Wand consists of an edge encoder &#981;<sub>E</sub> which uses the MeshCNN architecture and a segmentation classifier &#981;<sub>C</sub> which is a 3-layer MLP.
+                We train DA Wand with the explicit objective of producing minimal-distortion, large local segmentations with compact boundary. 
+                We achieve this by first pretraining on a synthetic dataset, then extending the learning to natural shapes through a novel <em>differentiable parameterization layer</em> <span style="color: rgb(71, 152, 244)">&#981;<sub>P</sub></span>. 
+                This layer computes a weighted UV embedding for the network-predicted segmentation on the fly during training. The UV map is sent into a distortion function of choice D, which is used in the thresholded-distortion 
+                loss <span style="color: salmon">L<sup>threshold</sup></span>. The smoothness loss <span style="color: salmon">L<sup>smooth</sup></span> enforces a compactness prior on the network prediction, which helps curtail non-contiguous segmentations.
+            </p>    
         </div>
     </div>
     <hr class="divider" />
@@ -172,7 +274,6 @@
             }
         );
     </script>
-    <script src="/assets/js/scripts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://uploads-ssl.webflow.com/51e0d73d83d06baa7a00000f/js/webflow.fd002feec.js"></script>

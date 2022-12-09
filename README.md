@@ -3,12 +3,7 @@
 ![Pytorch](https://img.shields.io/badge/PyTorch->=1.11.0-Red?logo=pytorch)
 ![CUDA](https://img.shields.io/badge/CUDA->=11.3.1-Red?logo=CUDA)
 
-
 Site code for "DA Wand: Distortion-Aware Selection using Neural Mesh Parameterization".
-
-## Getting Started
-
-## Interactive Demo 
 
 ## Citation
 ```
