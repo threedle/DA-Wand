@@ -28,8 +28,15 @@
 </head>
 
 <body>
-    <!-- TODO: Replace banner with teaser image -->
-    <img src="./media/teaser.png" style="max-width: 900px;display:block;margin-left:auto;margin-right:auto;margin-top:20px;margin-bottom:-30px"/>
+    <div id="banner">
+        <div class="block">
+            <img src ="./media/3dl.jpeg" align="left" style="max-width: 100px;margin-left:300px;margin-top:10px;">
+        </div>
+    </div>
+    <br clear="all" />
+    <div id="banner">
+        <img src="./media/teaser.png" style="max-width: 900px;display:block;margin-left:auto;margin-right:auto;margin-bottom:-30px" align="center"/>
+    </div>
     <div class="highlight-clean" style="padding-bottom: 10px;">
         <div class="container" style="max-width: 768px;margin-bottom:20px">
             <h1 class="text-center"><b>DA Wand</b>: Distortion-Aware Selection using Neural Mesh Parameterization</h1>
@@ -83,11 +90,10 @@
             </div>
         </div>
     </div>
-     <!-- TODO: Show carousel of results (rotating meshes w/ selection point + parameterization) -->
      <div class="container" style="max-width: 768px;">
         <div class="row">
             <div class="col-md-12">
-                <h2>Local Segmentations for Parameterization</h2>
+                <h2>Local Segmentation for UV Parameterization</h2>
                 <p>DA Wand aims to map a user selection point to a local segmentation which induces a low distortion parameterization. We showcase some example segmentations with parameterizations computed with SLIM.</p>
             </div>
             <div data-delay="10000" data-animation="slide" class="nerf_slider_v2 w-slider" data-autoplay="true" data-easing="ease" data-hide-arrows="false" data-disable-swipe="false" data-autoplay-limit="0" data-nav-spacing="3" data-duration="800" data-infinite="true" role="region" aria-label="carousel">
@@ -249,6 +255,10 @@
         </div>
     </div>
     <hr class="divider" />
+    <!-- TODO: Talk about synthetic dataset generation/pretraining -->
+    <!-- TODO: Talk about distortion self-supervision step -->
+    <!-- TODO: Talk about wLSCM formulation -->
+
     <div class="container" style="max-width: 768px;">
         <div class="row">
             <div class="col-md-12">
