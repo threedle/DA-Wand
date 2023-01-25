@@ -12,7 +12,7 @@ class MeshConv(nn.Module):
     """
     def __init__(self, in_channels, out_channels, k=5, bias=True):
         super(MeshConv, self).__init__()
-        # self.ogconv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(1, k), bias=True)
+        self.ogconv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(1, k), bias=True)
         self.conv = nn.Linear(in_features=5 * in_channels, out_features=out_channels)
         self.k = k
 
