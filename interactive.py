@@ -44,6 +44,8 @@ if __name__ == "__main__":
     parser.add_argument('--modelname', default="best", help='loads \{modelname\}_net.pth')
     parser.add_argument('--meshfile', default="sample81.obj", help='loads obj file from the meshdir')
     parser.add_argument('--optname', default="opt", help='loads \{optname\}.pkl from modeldir')
+    parser.add_argument('--normalize', action="store_true", help='normalize mesh to unit sphere and save new base file')
+    
     args = parser.parse_args()
     
     with open(os.path.join(args.modeldir, f"{args.optname}.pkl"), 'rb') as f:
@@ -103,6 +105,11 @@ if __name__ == "__main__":
     dataset = IntSegData(opt)
     soup = PolygonSoup.from_obj(os.path.join(args.meshdir, args.meshfile))
     mesh = Mesh(soup.vertices, soup.indices)
+    
+    if args.normalize:
+        mesh.normalize() 
+        mesh.export_obj(args.meshdir, f"{meshname}_norm")
+    
     current_index_list = []
     current_anchor_pos = [] 
     previous_preds = None 
