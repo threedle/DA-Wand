@@ -59,11 +59,11 @@
                     <h5 class="text-center"><a class="text-center" href="https://people.cs.uchicago.edu/~ranahanocka/">Rana Hanocka</a></h5>
                     <h6 class="text-center">University of Chicago</h6>
                 </div>
-            </div>    
+            </div>
         </div>
         <div class="container" style="max-width: 768px;text-align:center;">
             <div class="buttons">
-                <a class="btn btn-light" role="button" href="https://drive.google.com/file/d/1OkGwIPQb9RUeT5aw-X_tdBAPG0bB4dNQ/view?usp=sharing">
+                <a class="btn btn-light" role="button" href="https://arxiv.org/abs/2212.06344">
                     <svg style="width:24px;height:24px;margin-left:-12px;margin-right:12px" viewBox="0 0 24 24">
                         <path fill="currentColor" d="M16 0H8C6.9 0 6 .9 6 2V18C6 19.1 6.9 20 8 20H20C21.1 20 22 19.1 22 18V6L16 0M20 18H8V2H15V7H20V18M4 4V22H20V24H4C2.9 24 2 23.1 2 22V4H4M10 10V12H18V10H10M10 14V16H15V14H10Z"></path>
                     </svg>Paper
@@ -75,7 +75,7 @@
                     Code
                 </a>
             </div>
-        </div> 
+        </div>
     </div>
     <hr class="divider" />
     <div class="container" style="max-width: 768px;">
@@ -247,11 +247,11 @@
     <div class="container" style="max-width: 768px;">
         <div class="col-md-12">
             <p>DA Wand consists of an edge encoder &#981;<sub>E</sub> which uses the MeshCNN architecture and a segmentation classifier &#981;<sub>C</sub> which is a 3-layer MLP.
-                We train DA Wand with the explicit objective of producing minimal-distortion, large local segmentations with compact boundary. 
-                We achieve this by first pretraining on a synthetic dataset, then extending the learning to natural shapes through a novel <em>differentiable parameterization layer</em> <span style="color: rgb(71, 152, 244)">&#981;<sub>P</sub></span>. 
-                This layer computes a weighted UV embedding for the network-predicted segmentation on the fly during training. The UV map is sent into a distortion function of choice D, which is used in the thresholded-distortion 
+                We train DA Wand with the explicit objective of producing minimal-distortion, large local segmentations with compact boundary.
+                We achieve this by first pretraining on a synthetic dataset, then extending the learning to natural shapes through a novel <em>differentiable parameterization layer</em> <span style="color: rgb(71, 152, 244)">&#981;<sub>P</sub></span>.
+                This layer computes a weighted UV embedding for the network-predicted segmentation on the fly during training. The UV map is sent into a distortion function of choice D, which is used in the thresholded-distortion
                 loss <span style="color: salmon">L<sup>threshold</sup></span>. The smoothness loss <span style="color: salmon">L<sup>smooth</sup></span> enforces a compactness prior on the network prediction, which helps curtail non-contiguous segmentations.
-            </p>    
+            </p>
         </div>
     </div>
     <hr class="divider" />
