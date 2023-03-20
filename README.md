@@ -30,9 +30,9 @@ To install pygco, go into the `gco_python` folder and run `make`, then run `pyth
 ### Download original training data from paper 
 [Initial Primitives](https://drive.google.com/file/d/1Q2GdCjp59of64rrFrMqZCNAPV9QGOrKQ/view?usp=sharing)
 
-[Synthetic Dataset](https://drive.google.com/file/d/1fWASZLzh85WWLhQi6gYJg1uRJK5m92yK/view?usp=sharing)
+[Synthetic Dataset](https://drive.google.com/file/d/112tUBhhm5v4ZPIvSYYwRCk2kJL09cP-D/view?usp=sharing)
 
-[Distortion Self-Supervision Dataset](https://drive.google.com/file/d/1CjjlwzZdugoMhSnWHTTUcT5F6wrcJGgv/view?usp=share_link)
+[Distortion Self-Supervision Dataset](https://drive.google.com/file/d/1CjjlwzZdugoMhSnWHTTUcT5F6wrcJGgv/view?usp=sharing)
 
 To train, simply provide the path to the dataset folder as inputs to the argument `--dataroot` and the path to the test subfolder to the argument `--test_dir`. Set `--gpu_ids` to -1 if training without a GPU. See the `scripts` folder for example commands for training the network with the same parameters as in the paper. 
 
