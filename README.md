@@ -5,7 +5,7 @@
 
 ![teaser](./media/teaser.png)
 
-Public code release for "DA Wand: Distortion-Aware Selection using Neural Mesh Parameterization".
+Code for "DA Wand: Distortion-Aware Selection using Neural Mesh Parameterization" [CVPR 2023]
 
 ## Getting Started
 ### Installation
