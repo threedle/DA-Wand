@@ -14,7 +14,9 @@ ExponentialMap
 **gco_python**
 **tridesic**
 blender
-.vscode 
+.vscode
+*scratch*
+get_net_epoch.py
 
 # data files
 MeshCNN/checkpoints

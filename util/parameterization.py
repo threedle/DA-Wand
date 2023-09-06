@@ -1,8 +1,9 @@
-# InteractiveSegmentation: Parameterization 
+# InteractiveSegmentation: Parameterization
 import numpy as np
-from util.util import dclamp 
+from util.util import dclamp
+from cholespy import CholeskySolverD, MatrixType
 
-# Parameterization with least squares solve 
+# Parameterization with least squares solve
 def weightedlscm(vertices, faces, face_weights=None,
                         fixzero=False, pinned_vertices=None, pinned_vertex_vals=None,
                        return_face_err=False, device=None, weight_error=False, verbose=True,
@@ -10,7 +11,7 @@ def weightedlscm(vertices, faces, face_weights=None,
     """Parameterize a single mesh defined by vertices and faces
 
     Differentiable parameterization method follows LSCM with p = 2 with the pinned vertices set to the graph diameter, unless passed by the user.
-    This is a weighted version where each triangle linear system is elemetwise multiplied by the `face_weights' argument. 
+    This is a weighted version where each triangle linear system is elemetwise multiplied by the `face_weights' argument.
 
     Parameters
     ----------
@@ -34,11 +35,11 @@ def weightedlscm(vertices, faces, face_weights=None,
 
     """
     import torch
-    
-    if timeit == True: 
-        import time 
+
+    if timeit == True:
+        import time
         t0 = time.time()
-        
+
     # Initialize device
     if device is None:
         device = torch.device("cpu")
@@ -78,7 +79,7 @@ def weightedlscm(vertices, faces, face_weights=None,
                     pverts = torch.cat((pverts, torch.tensor([bdry[0]]).to(device)))
     pverts, ppos = torch.sort(pverts.long())
     # print(f"Pinned vertices: {pverts}")
-        
+
     num_faces = faces.shape[0]
     num_verts = vertices.shape[0]
     # Compute the indices of the non-pinned vertices
@@ -109,11 +110,11 @@ def weightedlscm(vertices, faces, face_weights=None,
             # Add small buffer to zero weights
             if len(torch.nonzero(face_weights.detach() == 0)) > 0 and verbose==True:
                 print("Fixzero triggered...")
-                
-            # Clamp the weights between 1e-8 and 1 
+
+            # Clamp the weights between 1e-8 and 1
             fweights = dclamp(face_weights, min=1e-8, max=1)
         else:
-            fweights = face_weights 
+            fweights = face_weights
 
     if pinned_vertex_vals is None:
         Up = torch.zeros(len(pverts) * 2, device=device).double()
@@ -155,27 +156,39 @@ def weightedlscm(vertices, faces, face_weights=None,
         torch.cat((torch.cat((Mp_1_unw, -Mp_2_unw), dim=1), torch.cat((Mp_2_unw, Mp_1_unw), dim=1)), dim=0),
         Up)
 
-    if timeit == True: 
+    if timeit == True:
         print(f"Param. matrix setup: {time.time() - t0:0.5f} seconds")
-        t0 = time.time() 
-    
+        t0 = time.time()
+
+    # TODO: Replace with sparse solver
+    # NOTE: 'A' matrix goes into cholesky solver d
+    #          solve(b matrix, x for holding solutions)
+    choleskysolver = CholeskySolverD(self.n, self.inds[0,:], self.inds[1,:], self.vals, MatrixType.COO)
+    b = b.double().contiguous()
+    c = b.permute(1,2,0).contiguous()
+    c = c.view(c.shape[0], -1)
+    x = torch.zeros_like(c)
+    choleskysolver.solve(c, x)
+    x = x.view(b.shape[1], b.shape[2], b.shape[0])
+    x = x.permute(2,0,1).contiguous()
+
     x = torch.linalg.lstsq(A, b).solution
-    
-    if timeit == True: 
+
+    if timeit == True:
         print(f"Param. lstsq problem solve: {time.time() - t0:0.5f} seconds")
-        t0 = time.time() 
+        t0 = time.time()
     nonf_count = torch.sum(~torch.isfinite(x))/len(x)
-    if not torch.all(torch.isfinite(x)): 
+    if not torch.all(torch.isfinite(x)):
         print(f"LSTSQ solution resulted in non-finite values: {nonf_count}")
         print(f"Trying on CPU with condition-robust driver...")
         x = torch.linalg.lstsq(A.cpu(), b.cpu(), driver="gelsd").solution
         x = x.to(device)
-    
-    if not torch.all(torch.isfinite(x)): 
+
+    if not torch.all(torch.isfinite(x)):
         print(f"CPU solve failed. Trying CVXPY...")
-        import cvxpy as cp 
+        import cvxpy as cp
         from cvxpylayers.torch import CvxpyLayer
-        
+
         x_var = cp.Variable((A.shape[1], 1))
         A_var = cp.Parameter(A.shape)
         b_var = cp.Parameter(b.shape)
@@ -184,7 +197,7 @@ def weightedlscm(vertices, faces, face_weights=None,
         # assert problem.is_dpp()
         layer = CvxpyLayer(problem, parameters=[A_var, b_var], variables=[x_var])
         x, = layer(A, b)
-                
+
     doub_nverts = x.shape[0]
     assert doub_nverts % 2 == 0
     param = torch.column_stack([x[:int(doub_nverts / 2)], x[int(doub_nverts / 2):]])
@@ -199,7 +212,7 @@ def weightedlscm(vertices, faces, face_weights=None,
         ferr_ret = torch.sum(torch.column_stack([face_err_tmp[:int(face_err_tmp.shape[0] / 2)],
                                                  face_err_tmp[int(face_err_tmp.shape[0] / 2):]]), dim=1)
         assert ferr_ret.shape[0] == faces.shape[0]
-        
+
         return param, ferr_ret
 
         if weight_error == True:
@@ -208,12 +221,12 @@ def weightedlscm(vertices, faces, face_weights=None,
             wferr_ret = torch.sum(torch.column_stack([w_face_err_tmp[:int(w_face_err_tmp.shape[0] / 2)],
                                                       w_face_err_tmp[int(w_face_err_tmp.shape[0] / 2):]]), dim=1)
             assert wferr_ret.shape[0] == faces.shape[0]
-            
+
             return param, wferr_ret
-        
-    if timeit == True: 
+
+    if timeit == True:
         print(f"Param. solution postprocessing: {time.time() - t0:0.5f} seconds")
-        t0 = time.time() 
-        
+        t0 = time.time()
+
     # Return the parameterization coordinates and error values
     return param
