@@ -9,6 +9,9 @@ class BaseOptions:
         self.initialized = False
 
     def initialize(self):
+        # Debugging
+        self.parser.add_argument('--debug', action='store_true', help='if true, then print some debugging values e.g. gradients')
+
         # data params
         self.parser.add_argument('--dataroot', required=True, help='path to meshes (should have subfolders train, test)')
         self.parser.add_argument('--ninput_edges', type=int, default=None, help='# of input edges (will include dummy edges)')
@@ -23,7 +26,7 @@ class BaseOptions:
         self.parser.add_argument("--cachefolder", type=str, default="cache", help="name of folder to save/load base mesh cache")
         self.parser.add_argument("--anchorcachefolder", type=str, default="anchorcache", help="name of folder to save/load anchor conditional/extrinsic values")
         self.parser.add_argument("--operatorcachefolder", type=str, default="opcache", help="name of folder to save/load operator values")
-        
+
         # network params
         self.parser.add_argument('--batch_size', type=int, default=1, help='input batch size')
         self.parser.add_argument('--subset', nargs="+", default=[], help='list of meshnos to include')
@@ -42,6 +45,8 @@ class BaseOptions:
         self.parser.add_argument('--extrinsic_features', nargs="+", default=[], help="Extrinsic features to concat prior to segmentation")
         self.parser.add_argument('--hks_t', nargs="+", type=float, default=None, help="time values to sample for hks feature")
         self.parser.add_argument('--extrinsic_condition_placement', choices=["pre", "post"], default=None, help='when to introduce extrinsic conditioning -- pre: meshcnn inputs, post: selection module inputs')
+        self.parser.add_argument('--initialize', type=str, default=None, choices={"anchor", "neighbors"}, help='how to initialize selection module')
+        self.parser.add_argument('--init_neighbor_radius', type=int, default=1, help='# neighbors to grow out in the neighbor initialization')
         self.parser.add_argument('--init_type', type=str, default='normal', help='network initialization [normal|xavier|kaiming|orthogonal]')
         self.parser.add_argument('--init_gain', type=float, default=0.02, help='scaling factor for normal, xavier and orthogonal.')
         self.parser.add_argument("--drop_relu", action='store_true', help="drop relu layer in final mesh convolution")
@@ -49,13 +54,14 @@ class BaseOptions:
         self.parser.add_argument("--binary_conv", action='store_true', help="whether to add a final binary upconvolution")
         self.parser.add_argument("--softmax", action='store_true', help="whether to softmax channelwise the final output")
         self.parser.add_argument("--transfer_data_off", action='store_false', help="don't transfer prepool data to decoder layers")
-        # Selection module parameters 
+        # Selection module parameters
         self.parser.add_argument('--selectwidth', type=int, default=256, help='width of hidden features')
         self.parser.add_argument('--selectdepth', type=int, default=3, help='# of hidden layers of selection module')
-        # Loss function weights 
+        # Loss function weights
         self.parser.add_argument("--gcsupervision_weight", type=float, default=1, help="weight on graphcuts loss")
         self.parser.add_argument("--gcsmoothness_weight", type=float, default=0.01, help="weight on graphcuts smoothness loss")
-        # L2 loss settings 
+        self.parser.add_argument("--gcsmoothness_anneal", type=str, choices={'linear'}, help="anneal the smoothness weight to the value set by gcsmoothness_weight over the training period")
+        # L2 loss settings
         self.parser.add_argument("--loss", type=str, choices={'bce', 'ce'}, help="loss function to use", default="ce")
         self.parser.add_argument("--reweight_loss", action="store_true", help="whether to reweight the loss function for each batch")
         self.parser.add_argument("--supervised", action="store_true", help="whether to supervised with labels")
@@ -67,19 +73,22 @@ class BaseOptions:
         self.parser.add_argument("--contiguity_loss", action="store_true", help="whether to supervise with contiguity loss")
         self.parser.add_argument("--compactness_loss", action="store_true", help="whether to supervise with compactness loss")
         self.parser.add_argument("--anchor_loss", action="store_true", help="whether to supervise with anchor loss")
-        self.parser.add_argument("--distortion_loss", type=str, choices={'count'}, help="distortion loss function to use", default=None) 
-        self.parser.add_argument("--cut_param", action="store_true", help="whether to run cutting prior to parameterization (not necessary for LSCM to work)")   
-        self.parser.add_argument("--softs2", action="store_true", help="set all weights lower than 0.5 to 0.5 in s2 loss to stabilize training")   
-        self.parser.add_argument("--segboundary", type=str, choices={'neighbor'}, help="whether first stage segmentation should include soft boundary", default=None) 
-        self.parser.add_argument("--segradius", type=int, default=1, help="# of neighbors to grow out soft boundary") 
-        # Distortion loss settings 
-        self.parser.add_argument("--distortion_metric", type=str, choices={'arap', 'conformal', 'singular', 'ss_isometric', 'ss_conformal'}, help="distortion metric to compute for entering into distortion loss function", default=None)    
+        self.parser.add_argument("--distortion_loss", type=str, choices={'count', 'count_v2', "count_l0"}, help="distortion loss function to use", default=None)
+        self.parser.add_argument("--cut_param", action="store_true", help="whether to run cutting prior to parameterization (not necessary for LSCM to work)")
+        self.parser.add_argument("--softs2", action="store_true", help="set all weights lower than 0.5 to 0.5 in s2 loss to stabilize training")
+        self.parser.add_argument("--segboundary", type=str, choices={'neighbor'}, help="whether first stage segmentation should include soft boundary", default=None)
+        self.parser.add_argument("--segradius", type=int, default=1, help="# of neighbors to grow out soft boundary")
+        # Distortion loss settings
+        self.parser.add_argument("--distortion_metric", type=str, choices={'arap', 'conformal', 'singular', 'ss_isometric', 'ss_conformal'}, help="distortion metric to compute for entering into distortion loss function", default=None)
         self.parser.add_argument("--delayed_distortion_epochs", type=int, default=None, help="how many epochs to delay distortion supervision")
         self.parser.add_argument("--solo_distortion", action="store_true", help="whether to only supervise with distortion after delayed entry")
         self.parser.add_argument("--lscmreg", action='store_true')
         self.parser.add_argument("--lscmregweight", type=float, default=1.)
         self.parser.add_argument("--lscmthreshold", type=float, default=0.001, help="counting loss lscm threshold")
         self.parser.add_argument("--arapthreshold", type=float, default=0.01, help="counting loss arap threshold")
+        self.parser.add_argument("--deltaschedule", action='store_true')
+        self.parser.add_argument("--delta", type=float, default=5., help="beta value for count loss")
+        self.parser.add_argument("--min_delta", type=float, default=None, help="delta value for L0 relaxation of counting distortion")
         self.parser.add_argument("--step1paramloss", action="store_true", help="parameterization loss on the step 1")
         self.parser.add_argument("--step2paramloss", action="store_true", help="parameterization loss on the step 2")
         self.parser.add_argument("--floodfillparam", action="store_true", help="whether to first floodfill the parameterization weights")
@@ -126,11 +135,11 @@ class BaseOptions:
         # set gpu ids
         if len(self.opt.gpu_ids) > 0:
             torch.cuda.set_device(self.opt.gpu_ids[0])
-        
-        # Set default for distortion epochs 
-        if self.opt.delayed_distortion_epochs is None: 
+
+        # Set default for distortion epochs
+        if self.opt.delayed_distortion_epochs is None:
             self.opt.delayed_distortion_epochs = float('inf')
-        
+
         args = vars(self.opt)
 
         if self.opt.seed is not None:

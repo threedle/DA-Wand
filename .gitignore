@@ -13,7 +13,8 @@ ExponentialMap
 **metrics*
 **gco_python**
 **tridesic**
-blender 
+blender
+.vscode 
 
 # data files
 MeshCNN/checkpoints

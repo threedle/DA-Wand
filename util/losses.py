@@ -1,5 +1,6 @@
 # InteractiveSegmentation: Standardized set of tests for parameterization loss functions
 import torch
+from util.util import dclamp
 
 # ==================== Energies ===============================
 def symmetricdirichlet(vertices, faces, param, face_area, param_area, return_face_energy=True):
@@ -22,42 +23,42 @@ def symmetricdirichlet(vertices, faces, param, face_area, param_area, return_fac
         return torch.sum(face_energy)
     return face_energy
 
-# Smoothness term for graphcuts: basically sum pairwise energies as function of label pairs + some kind of geometry weighting 
+# Smoothness term for graphcuts: basically sum pairwise energies as function of label pairs + some kind of geometry weighting
 # pairwise: maximum cost of diverging neighbor labels (i.e. 0 next to 1). this value is multiplied by the difference in the soft probs
 def gcsmoothness(preds, mesh, feature='dihedral', pairwise=1):
     face_adj = torch.tensor([[edge.halfedge.face.index, edge.halfedge.twin.face.index] for key, edge in sorted(mesh.topology.edges.items())]).long().to(preds.device)
-    
+
     if feature == 'dihedral':
         if not hasattr(mesh, "dihedrals"):
             from models.layers.meshing.analysis import computeDihedrals
-            computeDihedrals(mesh) 
-        
+            computeDihedrals(mesh)
+
         dihedrals = torch.clip(torch.pi - torch.from_numpy(mesh.dihedrals).to(preds.device), 0, torch.pi).squeeze()
-        smoothness = -torch.log(dihedrals/torch.pi + 1e-15)
+        smoothness = -torch.log(dihedrals/torch.pi + 1e-3)
     else:
         raise NotImplementedError(feature)
-    
+
     adj_preds = preds[face_adj]
-    
-    # NOTE: we include the 1 - torch.max() term in order to encourage patch GROWING 
+
+    # NOTE: we include the 1 - torch.max() term in order to encourage patch GROWING
     smoothness_cost = torch.mean(smoothness * pairwise * ((torch.abs(adj_preds[:,1] - adj_preds[:,0]))))
-        
-    return smoothness_cost 
+
+    return smoothness_cost
 
 def arap(local_tris, faces, param, return_face_energy=True, paramtris=None, renormalize=True,
          face_weights=None, normalize_filter=0, device=torch.device("cpu"), verbose=False, timeit=False, **kwargs):
     if paramtris is None:
         paramtris = param[faces]
 
-    if timeit == True: 
-        import time 
-        t0 = time.time() 
-        
+    if timeit == True:
+        import time
+        t0 = time.time()
+
     # Squared norms of difference in edge vectors multiplied by cotangent of opposite angle
     try:
         local_tris = local_tris.contiguous()
-    except Exception as e: 
-        print(e) 
+    except Exception as e:
+        print(e)
 
     e1 = local_tris[:, 2, :] - local_tris[:, 0, :]
     e2 = local_tris[:, 1, :] - local_tris[:, 0, :]
@@ -75,9 +76,9 @@ def arap(local_tris, faces, param, return_face_energy=True, paramtris=None, reno
     if torch.any(~torch.isfinite(paramtris)):
         print(f"Non-finite parameterization result found.")
         print(f"{torch.sum(~torch.isfinite(param))} non-finite out of {len(param.flatten())} param. elements")
-        return None  
-    
-    # Threshold param tris as well 
+        return None
+
+    # Threshold param tris as well
     e1_p = torch.maximum(torch.minimum(e1_p, torch.tensor(1e5)), torch.tensor(-1e5))
     e2_p = torch.maximum(torch.minimum(e2_p, torch.tensor(1e5)), torch.tensor(-1e5))
     e3_p = torch.maximum(torch.minimum(e3_p, torch.tensor(1e5)), torch.tensor(-1e5))
@@ -87,7 +88,7 @@ def arap(local_tris, faces, param, return_face_energy=True, paramtris=None, reno
     e_full = torch.stack([e1, e2, e3])
     e_p_full = torch.stack([e1_p, e2_p, e3_p])
     crosscov = torch.sum(cot_full * torch.matmul(e_full.unsqueeze(3), e_p_full.unsqueeze(2)), dim=0)
-    crosscov = crosscov.reshape(crosscov.shape[0], 4) # F x 4 
+    crosscov = crosscov.reshape(crosscov.shape[0], 4) # F x 4
 
     E = (crosscov[:,0] + crosscov[:,3])/2
     F = (crosscov[:,0] - crosscov[:,3])/2
@@ -96,75 +97,116 @@ def arap(local_tris, faces, param, return_face_energy=True, paramtris=None, reno
 
     Q = torch.sqrt(E ** 2 + H ** 2)
     R = torch.sqrt(F ** 2 + G ** 2)
-    
+
     S1 = Q + R
     S2 = Q - R
     a1 = torch.atan2(G, torch.clamp(F, min=1e-5))
     a2 = torch.atan2(H, torch.clamp(E, min=1e-5))
     theta = (a2 - a1) / 2 # F
     phi = (a2 + a1) / 2 # F
-    
+
     # F x 2 x 2
     U = torch.stack([torch.stack([torch.cos(phi), -torch.sin(phi)], dim=1), torch.stack([torch.sin(phi), torch.cos(phi)], dim=1)], dim=2)
-    
+
     # F x 2 x 2
     V = torch.stack([torch.stack([torch.cos(theta), -torch.sin(theta)], dim=1), torch.stack([torch.sin(theta), torch.cos(theta)], dim=1)], dim=2)
 
-    R = torch.matmul(V, U).to(device) # F x 2 x 2 
+    R = torch.matmul(V, U).to(device) # F x 2 x 2
     baddet = torch.where(torch.det(R) <= 0)[0]
-    if len(baddet) > 0: 
-        U[baddet, 1, :] *= -1 
+    if len(baddet) > 0:
+        U[baddet, 1, :] *= -1
         R = torch.matmul(V, U).to(device)
 
     edge_tmp = torch.stack([e1, e2, e3], dim=2)
     rot_edges = torch.matmul(R, edge_tmp) # F x 2 x 3
-    rot_e_full = rot_edges.permute(2, 0, 1) # 3 x F x 2 
-    cot_full = cot_full.reshape(cot_full.shape[0], cot_full.shape[1]) # 3 x F 
+    rot_e_full = rot_edges.permute(2, 0, 1) # 3 x F x 2
+    cot_full = cot_full.reshape(cot_full.shape[0], cot_full.shape[1]) # 3 x F
     if renormalize == True:
         # ARAP-minimizing scaling of parameterization edge lengths
-        if face_weights is not None: 
+        if face_weights is not None:
             keepfs = torch.where(face_weights > normalize_filter)[0]
         else:
             keepfs = torch.arange(rot_e_full.shape[1])
-        
+
         num = torch.sum(cot_full[:,keepfs] * torch.sum(rot_e_full[:,keepfs,:] * e_p_full[:,keepfs,:], dim = 2))
         denom = torch.sum(cot_full[:,keepfs] * torch.sum(e_p_full[:,keepfs,:] * e_p_full[:,keepfs,:], dim = 2))
-            
+
         ratio = max(num / denom, 1e-5)
         if verbose == True:
             print(f"Scaling param. edges by ARAP-minimizing scalar: {ratio}")
-    
+
         e_p_full *= ratio
-    
-    # If any non-finite values, then return None 
+
+    # If any non-finite values, then return None
     if not torch.all(torch.isfinite(e_p_full)) or not torch.all(torch.isfinite(rot_e_full)):
         print(f"ARAP: non-finite elements found")
-        return None 
-    
+        return None
+
     # Compute face-level distortions
     arap_tris = torch.sum(cot_full * torch.linalg.norm(e_p_full - rot_e_full, dim=2) ** 2, dim=0)
-    if timeit == True: 
+    if timeit == True:
         print(f"ARAP calculation: {time.time()-t0:0.5f}")
-    
+
     if return_face_energy == False:
         return torch.mean(arap_tris)
-    
+
     return arap_tris
-                                 
+
 # ==================== Loss Functions ===============================
 # Counting Loss
-def count_loss(face_errors, fareas, threshold=0.1, alpha=5, debug=False,
+def count_loss(face_errors, fareas, threshold=0.1, delta=5, debug=False,
                return_softloss=True, device=torch.device("cpu"), **kwargs):
     # Normalize face error by parea
     error = face_errors
     fareas = fareas / torch.sum(fareas)
-    softloss = fareas * (1 - torch.exp(-(error / threshold) ** alpha))
+    softloss = fareas * (1 - torch.exp(-(error / threshold) ** delta))
     count_loss = torch.sum(softloss)
 
     if debug == True:
-        print(f"Error quantile: {torch.quantile(error, torch.linspace(0, 1, 5).to(device).double())}")
+        print(f"Error quantile: {torch.quantile(error, torch.linspace(0, 1, 5).to(device).float())}")
         print(
-            f"Thresh loss quantile: {torch.quantile(torch.exp(-(error / threshold) ** alpha), torch.linspace(0, 1, 5).to(device).double())}")
+            f"Thresh loss quantile: {torch.quantile(torch.exp(-(error / threshold) ** delta), torch.linspace(0, 1, 5).to(device).float())}")
+
+    if return_softloss == True:
+        return count_loss, softloss
+    return count_loss
+
+# Count Loss v2: sigmoid relaxation of L0 function
+def count_loss_v2(face_errors, fareas, threshold=0.1, delta = 1, debug=False,
+               return_softloss=True, device=torch.device("cpu"), **kwargs):
+    # Normalize face error by parea
+    error = face_errors
+    fareas = fareas / torch.sum(fareas)
+
+    # NOTE: We use anneal delta => inf s.t. sigmoid => step function
+    softloss = fareas * torch.sigmoid(delta * (error - threshold))
+    count_loss = torch.sum(softloss)
+
+    if debug == True:
+        print(f"Error quantile: {torch.quantile(error, torch.linspace(0, 1, 5).to(device).float())}")
+        print(
+            f"Thresh loss quantile: {torch.quantile(softloss, torch.linspace(0, 1, 5).to(device).float())}")
+
+    if return_softloss == True:
+        return count_loss, softloss
+    return count_loss
+
+# Relaxation of L0 function
+def count_loss_l0(face_errors, fareas, threshold=0.1, delta = 1, debug=False,
+               return_softloss=True, device=torch.device("cpu")):
+    # Normalize face error by 3D triangle areas
+    error = face_errors
+    fareas = fareas / torch.sum(fareas)
+
+    # NOTE: dclamp to 0
+    error = dclamp(error - threshold, 0, 1e9)
+    softloss = fareas * error ** 2/(error ** 2 + delta)
+    count_loss = torch.sum(softloss)
+
+    if debug == True:
+        print(f"Error quantile: {torch.quantile(error, torch.linspace(0, 1, 5).to(device).float())}")
+        print(
+            f"Thresh loss quantile: {torch.quantile(softloss.float(), torch.linspace(0, 1, 5).to(device).float())}")
 
     if return_softloss == True:
         return count_loss, softloss
@@ -180,7 +222,7 @@ def compute_pr_auc(labels, preds):
 def auc(labels, preds):
     from sklearn.metrics import roc_auc_score
     auc_score = roc_auc_score(labels, preds)
-    return auc_score 
+    return auc_score
 
 def mAP(labels, preds, multi=False):
     from sklearn.metrics import average_precision_score
