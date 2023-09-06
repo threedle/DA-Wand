@@ -42,11 +42,6 @@ def gcsmoothness(preds, mesh, feature='dihedral', pairwise=1):
 
     # NOTE: we include the 1 - torch.max() term in order to encourage patch GROWING
     smoothness_cost = torch.mean(smoothness * pairwise * ((torch.abs(adj_preds[:,1] - adj_preds[:,0]))))
-<<<<<<< HEAD
-
-    return smoothness_cost
-=======
->>>>>>> 75306aed0bd8c8bbd39d40ac1e2f5fe09e151de0
 
     return smoothness_cost
 
@@ -98,8 +93,6 @@ def arap(vertices, faces, param, return_face_energy=True, paramtris=None, renorm
     e_p_full = torch.stack([e1_p, e2_p, e3_p])
     crosscov = torch.sum(cot_full * torch.matmul(e_full.unsqueeze(3), e_p_full.unsqueeze(2)), dim=0)
     crosscov = crosscov.reshape(crosscov.shape[0], 4) # F x 4
-<<<<<<< HEAD
-=======
 
     # tdenom = torch.clamp(crosscov[:,0]**2 + crosscov[:,1]**2 - crosscov[:,2]**2 - crosscov[:,3]**2, min=1e-5)
     # pdenom = torch.clamp(crosscov[:,0]**2 - crosscov[:,1]**2 + crosscov[:,2]**2 - crosscov[:,3]**2, min=1e-5)
@@ -115,7 +108,6 @@ def arap(vertices, faces, param, return_face_energy=True, paramtris=None, renorm
 
     # U = torch.stack([torch.stack([ctheta, -stheta], dim=1), torch.stack([stheta, ctheta], dim=1)], dim=2)
     # V = torch.stack([torch.stack([torch.cos(phi), -torch.sin(phi)], dim=1), torch.stack([torch.sin(phi), torch.cos(phi)], dim=1)], dim=2)
->>>>>>> 75306aed0bd8c8bbd39d40ac1e2f5fe09e151de0
 
     E = (crosscov[:,0] + crosscov[:,3])/2
     F = (crosscov[:,0] - crosscov[:,3])/2
@@ -141,11 +133,6 @@ def arap(vertices, faces, param, return_face_energy=True, paramtris=None, renorm
     V = torch.stack([torch.stack([torch.cos(theta), -torch.sin(theta)], dim=1), torch.stack([torch.sin(theta), torch.cos(theta)], dim=1)], dim=2)
 
     R = torch.matmul(V, U).to(device) # F x 2 x 2
-<<<<<<< HEAD
-    baddet = torch.where(torch.det(R) <= 0)[0]
-    if len(baddet) > 0:
-        U[baddet, 1, :] *= -1
-=======
 
     ## NOTE: Sanity check the SVD
     S = torch.stack([torch.diag(torch.tensor([S1[i], S2[i]])) for i in range(len(S1))]).to(S1.device)
@@ -158,7 +145,6 @@ def arap(vertices, faces, param, return_face_energy=True, paramtris=None, renorm
     if len(baddet) > 0:
         print(f"ARAP warning: found {len(baddet)} flipped rotations.")
         V[baddet, :, 1] *= -1
->>>>>>> 75306aed0bd8c8bbd39d40ac1e2f5fe09e151de0
         R = torch.matmul(V, U).to(device)
         assert torch.all(torch.det(R) >= 0)
 
@@ -192,33 +178,6 @@ def arap(vertices, faces, param, return_face_energy=True, paramtris=None, renorm
     if timeit == True:
         print(f"ARAP calculation: {time.time()-t0:0.5f}")
 
-<<<<<<< HEAD
-=======
-    # Debugging: show rotated edges along with parameterization
-    # import polyscope as ps
-    # ps.init()
-    # f1 = faces[0]
-    # param_f1 = param[f1]
-    # # Normalize the param so first vertex is at 0,0
-    # param_f1 = param_f1 - param_f1[0]
-    # og_f1 = local_tris[0] # 3 x 2
-    # rot_f1 = R[0]
-    # new_f1 = torch.matmul(rot_f1, og_f1.transpose(1,0)).transpose(1,0)
-    # print(new_f1)
-    # og_curve = ps.register_curve_network("og triangle", og_f1.numpy(), np.array([[0,1], [1,2], [2,0]]), enabled=True, color=[0,1,0])
-    # param_curve = ps.register_curve_network("UV", param_f1.numpy(), np.array([[0,1], [1,2], [2,0]]), enabled=True, color=[0,0,1])
-    # rot_curve = ps.register_curve_network("rot triangle", new_f1.numpy(), np.array([[0,1], [1,2], [2,0]]), enabled=True, color=[1,0,0])
-    # ps.show()
-
-    # # Compute energies
-    # print(e_p_full.shape)
-    # print(e_full.shape)
-    # print(arap_tris[0])
-    # print(torch.sum(cot_full[:,0] * torch.linalg.norm(e_p_full[:,0,:] - e_full[:,0,:], dim=1) ** 2))
-
-    # raise
-
->>>>>>> 75306aed0bd8c8bbd39d40ac1e2f5fe09e151de0
     if return_face_energy == False:
         return torch.mean(arap_tris)
 
