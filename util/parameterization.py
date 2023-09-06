@@ -163,14 +163,14 @@ def weightedlscm(vertices, faces, face_weights=None,
     # TODO: Replace with sparse solver
     # NOTE: 'A' matrix goes into cholesky solver d
     #          solve(b matrix, x for holding solutions)
-    choleskysolver = CholeskySolverD(self.n, self.inds[0,:], self.inds[1,:], self.vals, MatrixType.COO)
-    b = b.double().contiguous()
-    c = b.permute(1,2,0).contiguous()
-    c = c.view(c.shape[0], -1)
-    x = torch.zeros_like(c)
-    choleskysolver.solve(c, x)
-    x = x.view(b.shape[1], b.shape[2], b.shape[0])
-    x = x.permute(2,0,1).contiguous()
+    # choleskysolver = CholeskySolverD(self.n, self.inds[0,:], self.inds[1,:], self.vals, MatrixType.COO)
+    # b = b.double().contiguous()
+    # c = b.permute(1,2,0).contiguous()
+    # c = c.view(c.shape[0], -1)
+    # x = torch.zeros_like(c)
+    # choleskysolver.solve(c, x)
+    # x = x.view(b.shape[1], b.shape[2], b.shape[0])
+    # x = x.permute(2,0,1).contiguous()
 
     x = torch.linalg.lstsq(A, b).solution
 
