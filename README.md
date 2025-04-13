@@ -1,4 +1,4 @@
-# DA Wand [[Project Page](https://threedle.github.io/DA-Wand/)][[Blender Extension](https://extensions.blender.org/approval-queue/da-wand/))
+# DA Wand [[Project Page](https://threedle.github.io/DA-Wand/)][[Blender Extension](https://extensions.blender.org/approval-queue/da-wand/)]
 [![arXiv](https://img.shields.io/badge/arXiv-DAWand-b31b1b.svg)](https://drive.google.com/file/d/1OkGwIPQb9RUeT5aw-X_tdBAPG0bB4dNQ/view)
 ![Pytorch](https://img.shields.io/badge/PyTorch->=1.11.0-Red?logo=pytorch)
 ![CUDA](https://img.shields.io/badge/CUDA->=11.3.1-Red?logo=CUDA)
