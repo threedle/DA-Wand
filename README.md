@@ -7,7 +7,7 @@
 
 Code for "DA Wand: Distortion-Aware Selection using Neural Mesh Parameterization" [CVPR 2023]
 
-## Blender Extension
+## ⭐️ Blender Extension ⭐️
 We have a Blender extension available! You can install it directly from the [extensions store](https://extensions.blender.org/approval-queue/da-wand/) or from the [github repo](https://github.com/threedle/DAWand-Blender). We have also made available a [features tutorial](https://youtu.be/eHOW__7vnmQ) and [texturing video](https://youtu.be/uyY2FZG5ON4) for helping you incorporate the tool into your texturing pipelines.  
 
 https://github.com/user-attachments/assets/b66537a4-4f9a-4595-ba66-99f2b80f24c5
