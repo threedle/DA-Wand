@@ -83,10 +83,12 @@ The implementation code for DA Wand relies on a number of excellent public sourc
 
 ## Citation
 ```
-@article{liu2022dawand,
-         author = {Liu, Richard and Aigerman, Noam and Kim, Vladimir G. and Hanocka, Rana},
-         title  = {DA Wand: Distortion-Aware Selection using Neural Mesh Parameterization},
-         journal = {arXiv},
-         year = {2022}
-         }
+@InProceedings{Liu_2023_CVPR,
+    author    = {Liu, Richard and Aigerman, Noam and Kim, Vladimir G. and Hanocka, Rana},
+    title     = {DA Wand: Distortion-Aware Selection Using Neural Mesh Parameterization},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2023},
+    pages     = {16739-16749}
+}
 ```
